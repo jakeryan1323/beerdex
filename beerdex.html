@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beer Rating App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: auto;
+            text-align: center;
+        }
+
+        input, select, textarea, button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 8px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .rating-container {
+            position: relative;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: left;
+            
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 0px;
+            right: 5px;
+            background: none;
+            border: none;
+            color: rgb(240, 129, 129);
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .delete-btn:hover {
+            color: darkred;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loginForm">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Enter your username">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="ratingForm" class="hidden">
+        <h2>Rate a Beer</h2>
+        <p>Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
+        <input type="text" id="beerName" placeholder="Beer Name">
+
+        <label for="rating">Rating:</label>
+        <select id="rating">
+            <option value="5.0">5.0</option>
+            <option value="4.5">4.5</option>
+            <option value="4.0">4.0</option>
+            <option value="3.5">3.5</option>
+            <option value="3.0">3.0</option>
+            <option value="2.5">2.5</option>
+            <option value="2.0">2.0</option>
+            <option value="1.5">1.5</option>
+            <option value="1.0">1.0</option>
+        </select>
+
+        <textarea id="comments" placeholder="Your Comments"></textarea>
+        <button onclick="submitRating()">Submit</button>
+
+        <h3>Your Ratings (Highest to Lowest):</h3>
+        <div id="ratingsList"></div>
+        <button id="toggleButton" class="hidden" onclick="toggleMoreRatings()">Show More</button>
+    </div>
+
+    <script>
+        function login() {
+            const username = document.getElementById("username").value.trim();
+            if (username) {
+                localStorage.setItem("user", username);
+                showRatingForm(username);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("user");
+            document.getElementById("loginForm").classList.remove("hidden");
+            document.getElementById("ratingForm").classList.add("hidden");
+        }
+
+        function showRatingForm(username) {
+            document.getElementById("userDisplay").innerText = username;
+            document.getElementById("loginForm").classList.add("hidden");
+            document.getElementById("ratingForm").classList.remove("hidden");
+            loadRatings();
+        }
+
+        function submitRating() {
+            const beerName = document.getElementById("beerName").value.trim();
+            const rating = parseFloat(document.getElementById("rating").value);
+            const comments = document.getElementById("comments").value.trim();
+            const user = localStorage.getItem("user");
+
+            if (!beerName || isNaN(rating) || rating < 1 || rating > 5) {
+                alert("Please enter a beer name and select a rating.");
+                return;
+            }
+
+            const ratings = JSON.parse(localStorage.getItem("ratings")) || [];
+            ratings.push({ user, beerName, rating, comments });
+
+            localStorage.setItem("ratings", JSON.stringify(ratings));
+            document.getElementById("beerName").value = "";
+            document.getElementById("rating").value = "5.0";  // Reset to default
+            document.getElementById("comments").value = "";
+
+            loadRatings();
+        }
+
+        function deleteRating(index) {
+            const ratings = JSON.parse(localStorage.getItem("ratings")) || [];
+            ratings.splice(index, 1);  // Remove the rating at the given index
+            localStorage.setItem("ratings", JSON.stringify(ratings));
+            loadRatings();
+        }
+
+        function loadRatings() {
+            const ratingsList = document.getElementById("ratingsList");
+            const toggleButton = document.getElementById("toggleButton");
+            ratingsList.innerHTML = "";
+
+            const ratings = JSON.parse(localStorage.getItem("ratings")) || [];
+            const user = localStorage.getItem("user");
+
+            // Filter by logged-in user and sort by rating (highest to lowest)
+            const sortedRatings = ratings
+                .filter(r => r.user === user)
+                .sort((a, b) => Number(b.rating) - Number(a.rating));
+
+            // Show only top 5 ratings initially
+            sortedRatings.forEach((r, index) => {
+                const div = document.createElement("div");
+                div.className = "rating-container";
+                div.innerHTML = `
+                    <button class="delete-btn" onclick="deleteRating(${index})">X</button>
+                    <p><strong>${r.beerName}</strong> - ${r.rating}/5</p>
+                    <p>${r.comments}</p>
+                `;
+
+                if (index >= 5) {
+                    div.classList.add("hidden");
+                }
+
+                ratingsList.appendChild(div);
+            });
+
+            // Show the toggle button if there are more than 5 ratings
+            if (sortedRatings.length > 5) {
+                toggleButton.classList.remove("hidden");
+                toggleButton.innerText = "Show More";
+            } else {
+                toggleButton.classList.add("hidden");
+            }
+        }
+
+        function toggleMoreRatings() {
+            const ratingsList = document.getElementById("ratingsList");
+            const toggleButton = document.getElementById("toggleButton");
+            const hiddenItems = ratingsList.querySelectorAll(".hidden");
+
+            if (hiddenItems.length > 0) {
+                hiddenItems.forEach(item => item.classList.remove("hidden"));
+                toggleButton.innerText = "Show Less";
+            } else {
+                const allRatings = ratingsList.children;
+                for (let i = 5; i < allRatings.length; i++) {
+                    allRatings[i].classList.add("hidden");
+                }
+                toggleButton.innerText = "Show More";
+            }
+        }
+
+        (function checkLogin() {
+            const user = localStorage.getItem("user");
+            if (user) {
+                showRatingForm(user);
+            }
+        })();
+    </script>
+
+</body>
+
+</html>
