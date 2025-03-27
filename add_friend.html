@@ -46,44 +46,38 @@
         const database = firebase.database();
 
         function addFriendByEmail() {
-            const email = document.getElementById("friendEmail").value.trim();
-            if (email === "") {
-                alert("Please enter a friend's email.");
-                return;
+    const email = document.getElementById("friendEmail").value.trim();
+    if (email === "") {
+        alert("Please enter a friend's email.");
+        return;
+    }
+
+    // Query the Realtime Database for the user with the given email
+    firebase.database().ref("users").orderByChild("email").equalTo(email).once("value")
+        .then(snapshot => {
+            if (snapshot.exists()) {
+                const friendData = snapshot.val();
+                const friendUid = Object.keys(friendData)[0];  // Get the UID of the found user
+
+                const currentUserUid = firebase.auth().currentUser.uid;
+
+                // Add the friend to both users' friend lists
+                firebase.database().ref("users/" + currentUserUid + "/friends/" + friendUid).set(true)
+                    .then(() => {
+                        firebase.database().ref("users/" + friendUid + "/friends/" + currentUserUid).set(true)
+                            .then(() => {
+                                alert("Friend added successfully!");
+                            })
+                            .catch(error => alert("Error adding friend to friend's list: " + error.message));
+                    })
+                    .catch(error => alert("Error adding friend to your list: " + error.message));
+            } else {
+                alert("No user found with that email.");
             }
+        })
+        .catch(error => alert("Error querying the database: " + error.message));
+}
 
-            // Step 1: Find the user by email and get their UID
-            firebase.auth().fetchSignInMethodsForEmail(email)
-                .then(methods => {
-                    if (methods.length === 0) {
-                        alert("No user found with that email.");
-                        return;
-                    }
-
-                    // Step 2: Get the UID of the friend (fetch the UID based on email)
-                    firebase.database().ref("users").orderByChild("email").equalTo(email).once("value", snapshot => {
-                        if (snapshot.exists()) {
-                            const friendUid = Object.keys(snapshot.val())[0];  // Get the UID from the snapshot
-
-                            const currentUserUid = firebase.auth().currentUser.uid;
-
-                            // Step 3: Add the friend to both users' friend lists
-                            firebase.database().ref("users/" + currentUserUid + "/friends/" + friendUid).set(true)
-                                .then(() => {
-                                    firebase.database().ref("users/" + friendUid + "/friends/" + currentUserUid).set(true)
-                                        .then(() => {
-                                            alert("Friend added successfully!");
-                                        })
-                                        .catch(error => alert("Error adding friend to friend's list: " + error.message));
-                                })
-                                .catch(error => alert("Error adding friend to your list: " + error.message));
-                        } else {
-                            alert("No user found with that email.");
-                        }
-                    });
-                })
-                .catch(error => alert("Error fetching sign-in methods: " + error.message));
-        }
 
         function goToHomePage() {
             window.location.href = "index.html";  // Replace "index.html" with your home page filename
