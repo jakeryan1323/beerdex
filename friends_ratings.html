@@ -24,6 +24,9 @@
             margin-top: 15px;
             text-align: left;
         }
+        .friend-container {
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -54,74 +57,72 @@
         const database = firebase.database();
 
         function loadFriendsRatings() {
-            function loadFriendsRatings() {
-    const user = auth.currentUser;
-    if (!user) {
-        alert("Please log in to see friends' ratings.");
-        window.location.href = "index.html";
-        return;
-    }
+            const user = auth.currentUser;
+            if (!user) {
+                alert("Please log in to see friends' ratings.");
+                window.location.href = "index.html";
+                return;
+            }
 
-    const friendsRatingsList = document.getElementById("friendsRatingsList");
-    friendsRatingsList.innerHTML = "";
+            const friendsRatingsList = document.getElementById("friendsRatingsList");
+            friendsRatingsList.innerHTML = "";
 
-    // Get the list of friends
-    database.ref("users/" + user.uid + "/friends").once("value", snapshot => {
-        if (!snapshot.exists()) {
-            friendsRatingsList.innerHTML = "<p>You have no friends added yet.</p>";
-            return;
-        }
-
-        snapshot.forEach(friendSnapshot => {
-            const friendId = friendSnapshot.val(); // Get friend's UID
-
-            // Fetch friend's username and email
-            database.ref("users/" + friendId).once("value").then(friendUserSnap => {
-                const friendData = friendUserSnap.val();
-                if (!friendData) {
-                    console.error(`No data found for friend ID: ${friendId}`);
+            // Get the list of friends
+            database.ref("users/" + user.uid + "/friends").once("value", snapshot => {
+                if (!snapshot.exists()) {
+                    friendsRatingsList.innerHTML = "<p>You have no friends added yet.</p>";
                     return;
                 }
 
-                const friendUsername = friendData.username ? friendData.username : friendData.email ? friendData.email : "Unknown";
+                snapshot.forEach(friendSnapshot => {
+                    const friendId = friendSnapshot.val(); // Get friend's UID
 
-                // Create a container for each friend's ratings
-                const friendContainer = document.createElement("div");
-                friendContainer.className = "friend-container";
+                    database.ref("users/" + friendId).once("value").then(friendUserSnap => {
+                        const friendData = friendUserSnap.val();
+                        if (!friendData) {
+                            console.error(`No data found for friend ID: ${friendId}`);
+                            return;
+                        }
 
-                // Add friend's username before their ratings
-                const friendHeader = document.createElement("div");
-                friendHeader.className = "username-header";
-                friendHeader.innerText = friendUsername;
-                friendContainer.appendChild(friendHeader);
+                        const friendUsername = friendData.username ? friendData.username : friendData.email ? friendData.email : "Unknown";
 
-                // Fetch their ratings
-                database.ref("users/" + friendId + "/ratings").once("value", ratingsSnapshot => {
-                    if (!ratingsSnapshot.exists()) {
-                        const noRatings = document.createElement("p");
-                        noRatings.innerText = "No ratings available.";
-                        friendContainer.appendChild(noRatings);
-                    } else {
-                        ratingsSnapshot.forEach(ratingSnap => {
-                            const rating = ratingSnap.val();
-                            const ratingDiv = document.createElement("div");
-                            ratingDiv.className = "rating-container";
-                            ratingDiv.innerHTML = `
-                                <p><strong>${rating.beerName}</strong> - ${rating.rating}/5</p>
-                                <p><strong>Location:</strong> ${rating.location}</p>
-                                <p><strong>Occasion:</strong> ${rating.occasion}</p>
-                                <p><strong>Comments:</strong> ${rating.comments}</p>
-                            `;
-                            friendContainer.appendChild(ratingDiv);
+                        // Create a container for each friend
+                        const friendContainer = document.createElement("div");
+                        friendContainer.className = "friend-container";
+
+                        // Add friend's username before their ratings
+                        const friendHeader = document.createElement("div");
+                        friendHeader.className = "username-header";
+                        friendHeader.innerText = friendUsername;
+                        friendContainer.appendChild(friendHeader);
+
+                        // Fetch their ratings
+                        database.ref("users/" + friendId + "/ratings").once("value", ratingsSnapshot => {
+                            if (!ratingsSnapshot.exists()) {
+                                const noRatings = document.createElement("p");
+                                noRatings.innerText = "No ratings available.";
+                                friendContainer.appendChild(noRatings);
+                            } else {
+                                ratingsSnapshot.forEach(ratingSnap => {
+                                    const rating = ratingSnap.val();
+                                    const ratingDiv = document.createElement("div");
+                                    ratingDiv.className = "rating-container";
+                                    ratingDiv.innerHTML = `
+                                        <p><strong>${rating.beerName}</strong> - ${rating.rating}/5</p>
+                                        <p><strong>Location:</strong> ${rating.location}</p>
+                                        <p><strong>Occasion:</strong> ${rating.occasion}</p>
+                                        <p><strong>Comments:</strong> ${rating.comments}</p>
+                                    `;
+                                    friendContainer.appendChild(ratingDiv);
+                                });
+                            }
+                            // Append each friend's ratings under their name
+                            friendsRatingsList.appendChild(friendContainer);
                         });
-                    }
-                    // Append each friend's ratings under their name
-                    friendsRatingsList.appendChild(friendContainer);
+                    });
                 });
             });
-        });
-    });
-}
+        }
 
         auth.onAuthStateChanged(user => {
             if (user) loadFriendsRatings();
