@@ -1,0 +1,92 @@
+<!-- Friends' Ratings Page: friends_ratings.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends' Ratings</title>
+    <style>
+        /* Add styles for this page as needed */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: auto;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h2>Friends' Ratings</h2>
+
+    <div id="friendsRatingsList"></div>
+
+    <!-- Back to Home button -->
+    <button onclick="window.location.href='index.html'">Back to Home</button>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase initialization
+        const firebaseConfig = { /* Your Firebase config */ };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        function loadFriendsRatings() {
+            const user = auth.currentUser;
+            if (user) {
+                // Get the list of friends' IDs
+                firebase.database().ref("users/" + user.uid + "/friends").once("value", snapshot => {
+                    const friends = snapshot.val();
+                    if (friends) {
+                        let friendRatings = [];
+                        const friendsIds = Object.values(friends);
+
+                        // Fetch each friend's ratings
+                        friendsIds.forEach(friendId => {
+                            firebase.database().ref("users/" + friendId + "/ratings").once("value", snapshot => {
+                                snapshot.forEach(childSnapshot => {
+                                    friendRatings.push({
+                                        userId: friendId,
+                                        ratingId: childSnapshot.key,
+                                        ...childSnapshot.val()
+                                    });
+                                });
+                            });
+                        });
+
+                        // Once all ratings are fetched, display them
+                        setTimeout(() => {
+                            displayRatings(friendRatings);
+                        }, 1000); // Adjust timeout as necessary
+                    }
+                });
+            }
+        }
+
+        function displayRatings(ratings) {
+            const ratingsList = document.getElementById("friendsRatingsList");
+            ratingsList.innerHTML = ""; // Clear previous list
+
+            ratings.forEach(r => {
+                const div = document.createElement("div");
+                div.className = "rating-container";
+                div.innerHTML = `
+                    <button class="delete-btn" onclick="deleteRating('${r.ratingId}')">X</button>
+                    <p><strong>${r.beerName}</strong> - ${r.ratingId}</p>
+                    <p><strong>Location:</strong> ${r.location}</p>
+                    <p><strong>Occasion:</strong> ${r.occasion}</p>
+                    <p><strong>Comments:</strong> ${r.comments}</p>
+                `;
+                ratingsList.appendChild(div);
+            });
+        }
+
+        // Load the ratings on page load
+        window.onload = loadFriendsRatings;
+    </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!-- add_friend.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add a Friend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: auto;
+            text-align: center;
+        }
+        input, button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Add a Friend</h2>
+    <input type="email" id="friendEmail" placeholder="Friend's Email">
+    <button onclick="addFriendByEmail()">Add Friend</button>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        function addFriendByEmail() {
+            const email = document.getElementById("friendEmail").value.trim();
+            if (email === "") {
+                alert("Please enter a friend's email.");
+                return;
+            }
+
+            // Find user by email and get their UID
+            firebase.auth().fetchSignInMethodsForEmail(email)
+                .then(methods => {
+                    if (methods.length === 0) {
+                        alert("No user found with that email.");
+                        return;
+                    }
+
+                    // Get the UID of the friend
+                    firebase.auth().signInWithEmailAndPassword(email, "dummyPassword")  // Use a dummy login for this process
+                        .then((userCredential) => {
+                            const friendUid = userCredential.user.uid;
+                            const currentUserUid = firebase.auth().currentUser.uid;
+                            
+                            // Add the friend to both users' friend lists
+                            firebase.database().ref("users/" + currentUserUid + "/friends/" + friendUid).set(true)
+                                .then(() => {
+                                    firebase.database().ref("users/" + friendUid + "/friends/" + currentUserUid).set(true)
+                                        .then(() => {
+                                            alert("Friend added successfully!");
+                                        })
+                                        .catch(error => alert("Error adding friend to friend's list: " + error.message));
+                                })
+                                .catch(error => alert("Error adding friend to your list: " + error.message));
+                        })
+                        .catch(error => alert("Error finding user by email: " + error.message));
+                })
+                .catch(error => alert("Error fetching sign-in methods: " + error.message));
+        }
+    </script>
+</body>
+</html>
