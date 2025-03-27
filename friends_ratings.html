@@ -1,5 +1,3 @@
-<!-- Friends' Ratings Page: friends_ratings.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Friends' Ratings</title>
     <style>
-        /* Add styles for this page as needed */
         body {
             font-family: Arial, sans-serif;
             max-width: 500px;
@@ -21,7 +18,6 @@
 
     <div id="friendsRatingsList"></div>
 
-    <!-- Back to Home button -->
     <button onclick="window.location.href='index.html'">Back to Home</button>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
@@ -51,28 +47,38 @@
                 firebase.database().ref("users/" + user.uid + "/friends").once("value", snapshot => {
                     const friends = snapshot.val();
                     if (friends) {
-                        let friendRatings = [];
-                        const friendsIds = Object.values(friends);
-
-                        // Fetch each friend's ratings
-                        friendsIds.forEach(friendId => {
-                            firebase.database().ref("users/" + friendId + "/ratings").once("value", snapshot => {
-                                snapshot.forEach(childSnapshot => {
-                                    friendRatings.push({
-                                        userId: friendId,
-                                        ratingId: childSnapshot.key,
-                                        ...childSnapshot.val()
+                        const friendsIds = Object.keys(friends); // Get the friend IDs
+                        const ratingPromises = friendsIds.map(friendId => {
+                            return new Promise((resolve, reject) => {
+                                // Fetch each friend's ratings
+                                firebase.database().ref("users/" + friendId + "/ratings").once("value", snapshot => {
+                                    const ratings = [];
+                                    snapshot.forEach(childSnapshot => {
+                                        ratings.push({
+                                            userId: friendId,
+                                            ratingId: childSnapshot.key,
+                                            ...childSnapshot.val()
+                                        });
                                     });
-                                });
+                                    resolve(ratings); // Resolve the ratings for this friend
+                                }, reject); // Reject if there's an error fetching ratings
                             });
                         });
 
-                        // Once all ratings are fetched, display them
-                        setTimeout(() => {
+                        // Wait for all rating promises to resolve
+                        Promise.all(ratingPromises).then(allRatings => {
+                            const friendRatings = allRatings.flat(); // Flatten all ratings into one array
                             displayRatings(friendRatings);
-                        }, 1000); // Adjust timeout as necessary
+                        }).catch(error => {
+                            console.error("Error fetching ratings:", error);
+                            alert("There was an error loading the ratings.");
+                        });
+                    } else {
+                        alert("You have no friends to display ratings for.");
                     }
                 });
+            } else {
+                alert("Please sign in to view your friends' ratings.");
             }
         }
 
@@ -80,17 +86,22 @@
             const ratingsList = document.getElementById("friendsRatingsList");
             ratingsList.innerHTML = ""; // Clear previous list
 
-            ratings.forEach(r => {
-                const div = document.createElement("div");
-                div.className = "rating-container";
-                div.innerHTML = `
-                    <p><strong>${r.beerName}</strong> - ${r.ratingId}</p>
-                    <p><strong>Location:</strong> ${r.location}</p>
-                    <p><strong>Occasion:</strong> ${r.occasion}</p>
-                    <p><strong>Comments:</strong> ${r.comments}</p>
-                `;
-                ratingsList.appendChild(div);
-            });
+            if (ratings.length === 0) {
+                ratingsList.innerHTML = "<p>No ratings available.</p>";
+            } else {
+                ratings.forEach(r => {
+                    const div = document.createElement("div");
+                    div.className = "rating-container";
+                    div.innerHTML = `
+                        <p><strong>Beer Name:</strong> ${r.beerName}</p>
+                        <p><strong>Location:</strong> ${r.location}</p>
+                        <p><strong>Occasion:</strong> ${r.occasion}</p>
+                        <p><strong>Comments:</strong> ${r.comments}</p>
+                        <p><strong>Rating:</strong> ${r.rating}</p>
+                    `;
+                    ratingsList.appendChild(div);
+                });
+            }
         }
 
         // Load the ratings on page load
