@@ -66,20 +66,20 @@
 
             // Get the list of friends
             database.ref("users/" + user.uid + "/friends").once("value", snapshot => {
-                if (!snapshot.exists()) {
+                const friends = snapshot.val();
+                if (!friends) {
                     friendsRatingsList.innerHTML = "<p>You have no friends added yet.</p>";
                     return;
                 }
 
-                snapshot.forEach(friendSnapshot => {
-                    const friendId = friendSnapshot.val(); // Get friend's UID
+                const friendsIds = Object.keys(friends); // FIX: Get friend UIDs correctly
 
-                    // Fetch friend's username and email
-                    database.ref("users/" + friendId).once("value").then(friendUserSnap => {
-                        const friendData = friendUserSnap.val();
+                friendsIds.forEach(friendId => {
+                    database.ref("users/" + friendId).once("value").then(friendSnapshot => {
+                        const friendData = friendSnapshot.val();
                         if (!friendData) {
-                         console.error(`No data found for friend ID: ${friendId}`);
-                        return;
+                            console.error(`No data found for friend ID: ${friendId}`);
+                            return;
                         }
 
                         const friendUsername = friendData.username ? friendData.username : friendData.email ? friendData.email : "Unknown";
