@@ -28,13 +28,20 @@
         }
         .delete-btn {
             position: absolute;
-            top: 5px;
-            right: 10px;
+            top: 0px;
+            right: 5px;
             background: none;
             border: none;
-            color: red;
-            font-weight: bold;
+            color: rgb(240, 129, 129);
+            font-size: 14px;
             cursor: pointer;
+            font-weight: bold;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
@@ -205,6 +212,23 @@
         }
 
         auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
+
+         // Function to delete a rating from Firebase
+    function deleteRating(ratingId) {
+        const user = auth.currentUser;
+        
+        if (user) {
+            // Remove the rating from Firebase
+            database.ref("users/" + user.uid + "/ratings/" + ratingId).remove()
+                .then(() => {
+                    // Reload ratings after deletion
+                    loadRatings(user.uid);
+                })
+                .catch(error => {
+                    alert("Error deleting rating: " + error.message);
+                });
+        }
+    }
     </script>
 </body>
 </html>
