@@ -110,14 +110,24 @@
         const database = firebase.database();
 
         function signUp() {
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(() => alert("Account created! Please log in."))
-                .catch(error => alert(error.message));
-        }
-
+    auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => {
+            const user = userCredential.user;
+            
+            // After creating the user, store the email in Realtime Database
+            firebase.database().ref("users/" + user.uid).set({
+                email: user.email // Storing the email with the UID as the key
+            }).then(() => {
+                alert("Account created! Please log in.");
+            }).catch(error => {
+                alert("Error saving user data: " + error.message);
+            });
+        })
+        .catch(error => alert(error.message));
+}
         function login() {
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
