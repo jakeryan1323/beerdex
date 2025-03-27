@@ -61,25 +61,28 @@
                         const friendsIds = Object.keys(friends); // Get the friend IDs
                         const ratingPromises = friendsIds.map(friendId => {
                             return new Promise((resolve, reject) => {
-                                // Fetch each friend's ratings
-                                firebase.database().ref("users/" + friendId + "/ratings").once("value", snapshot => {
-                                    const ratings = [];
-                                    snapshot.forEach(childSnapshot => {
-                                        ratings.push({
-                                            userId: friendId,
-                                            ratingId: childSnapshot.key,
-                                            ...childSnapshot.val()
+                                // Fetch the friend's email and ratings
+                                firebase.database().ref("users/" + friendId).once("value", friendSnapshot => {
+                                    const friendEmail = friendSnapshot.val().email; // Get the friend's email
+                                    
+                                    firebase.database().ref("users/" + friendId + "/ratings").once("value", snapshot => {
+                                        const ratings = [];
+                                        snapshot.forEach(childSnapshot => {
+                                            ratings.push({
+                                                userId: friendId,
+                                                ratingId: childSnapshot.key,
+                                                ...childSnapshot.val()
+                                            });
                                         });
-                                    });
-                                    resolve(ratings); // Resolve the ratings for this friend
-                                }, reject); // Reject if there's an error fetching ratings
+                                        resolve({ email: friendEmail, ratings: ratings }); // Resolve both email and ratings
+                                    }, reject); // Reject if there's an error fetching ratings
+                                }, reject); // Reject if there's an error fetching friend data
                             });
                         });
 
                         // Wait for all rating promises to resolve
                         Promise.all(ratingPromises).then(allRatings => {
-                            const friendRatings = allRatings.flat(); // Flatten all ratings into one array
-                            displayRatings(friendRatings);
+                            displayRatings(allRatings);
                         }).catch(error => {
                             console.error("Error fetching ratings:", error);
                             alert("There was an error loading the ratings.");
@@ -93,22 +96,29 @@
             }
         }
 
-        function displayRatings(ratings) {
+        function displayRatings(friendsData) {
             const ratingsList = document.getElementById("friendsRatingsList");
             ratingsList.innerHTML = ""; // Clear previous list
 
-            if (ratings.length === 0) {
+            if (friendsData.length === 0) {
                 ratingsList.innerHTML = "<p>No ratings available.</p>";
             } else {
-                ratings.forEach(r => {
+                friendsData.forEach(friendData => {
                     const div = document.createElement("div");
                     div.className = "rating-container";
+                    
+                    // Add the friend's email before displaying the ratings
                     div.innerHTML = `
-                        <p><strong>Beer Name:</strong> ${r.beerName}</p>
-                        <p><strong>Location:</strong> ${r.location}</p>
-                        <p><strong>Occasion:</strong> ${r.occasion}</p>
-                        <p><strong>Comments:</strong> ${r.comments}</p>
-                        <p><strong>Rating:</strong> ${r.rating}</p>
+                        <h3>${friendData.email}'s Ratings:</h3>
+                        ${friendData.ratings.map(r => `
+                            <div>
+                                <p><strong>Beer Name:</strong> ${r.beerName}</p>
+                                <p><strong>Location:</strong> ${r.location}</p>
+                                <p><strong>Occasion:</strong> ${r.occasion}</p>
+                                <p><strong>Comments:</strong> ${r.comments}</p>
+                                <p><strong>Rating:</strong> ${r.rating}</p>
+                            </div>
+                        `).join("")}
                     `;
                     ratingsList.appendChild(div);
                 });
