@@ -24,6 +24,7 @@
     <h2>Add a Friend</h2>
     <input type="email" id="friendEmail" placeholder="Friend's Email">
     <button onclick="addFriendByEmail()">Add Friend</button>
+    <button onclick="goToHomePage()">Back to Home</button>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
@@ -79,6 +80,10 @@
                         .catch(error => alert("Error finding user by email: " + error.message));
                 })
                 .catch(error => alert("Error fetching sign-in methods: " + error.message));
+        }
+        
+        function goToHomePage() {
+            window.location.href = "index.html";  // Replace "index.html" with your home page filename
         }
     </script>
 </body>
