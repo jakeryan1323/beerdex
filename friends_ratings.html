@@ -7,123 +7,114 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 500px;
+            max-width: 600px;
             margin: auto;
             text-align: center;
+        }
+        .rating-container {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        .username-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 15px;
+            text-align: left;
         }
     </style>
 </head>
 <body>
-    <h2>Friends' Ratings</h2>
-
-    <div id="friendsRatingsList"></div>
-
+    <h2>Friends' Beer Ratings</h2>
     <button onclick="window.location.href='index.html'">Back to Home</button>
+    
+    <div id="friendsRatingsList"></div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
 
     <script>
-        // Firebase initialization
-        const firebaseConfig = { 
+        // Firebase Config
+        const firebaseConfig = {
             apiKey: "AIzaSyBfWCzRe_nIxoDNq2pe_tC208jNDNCp7BU",
             authDomain: "beerdex-87d10.firebaseapp.com",
-            databaseURL: "https://beerdex-87d10-default-rtdb.firebaseio.com/",  // Correct Firebase Realtime Database URL
+            databaseURL: "https://beerdex-87d10-default-rtdb.firebaseio.com/",
             projectId: "beerdex-87d10",
             storageBucket: "beerdex-87d10.appspot.com",
             messagingSenderId: "1056856047818",
             appId: "1:1056856047818:web:ac019e2e037bf15509b433"
         };
 
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const database = firebase.database();
 
-        // Wait for the Firebase Auth state to load
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                // Once authenticated, load friends' ratings
-                loadFriendsRatings();
-            } else {
-                // If no user is signed in, show an error message
-                alert("Please sign in to view your friends' ratings.");
-            }
-        });
-
         function loadFriendsRatings() {
             const user = auth.currentUser;
-            if (user) {
-                // Get the list of friends' IDs
-                firebase.database().ref("users/" + user.uid + "/friends").once("value", snapshot => {
-                    const friends = snapshot.val();
-                    if (friends) {
-                        const friendsIds = Object.keys(friends); // Get the friend IDs
-                        const ratingPromises = friendsIds.map(friendId => {
-                            return new Promise((resolve, reject) => {
-                                // Fetch the friend's email and ratings
-                                firebase.database().ref("users/" + friendId).once("value", friendSnapshot => {
-                                    const friendEmail = friendSnapshot.val().email; // Get the friend's email
-                                    
-                                    firebase.database().ref("users/" + friendId + "/ratings").once("value", snapshot => {
-                                        const ratings = [];
-                                        snapshot.forEach(childSnapshot => {
-                                            ratings.push({
-                                                userId: friendId,
-                                                ratingId: childSnapshot.key,
-                                                ...childSnapshot.val()
-                                            });
-                                        });
-                                        resolve({ email: friendEmail, ratings: ratings }); // Resolve both email and ratings
-                                    }, reject); // Reject if there's an error fetching ratings
-                                }, reject); // Reject if there's an error fetching friend data
+            if (!user) {
+                alert("Please log in to see friends' ratings.");
+                window.location.href = "index.html";
+                return;
+            }
+
+            const friendsRatingsList = document.getElementById("friendsRatingsList");
+            friendsRatingsList.innerHTML = "";
+
+            // Get the list of friends
+            database.ref("users/" + user.uid + "/friends").once("value", snapshot => {
+                if (!snapshot.exists()) {
+                    friendsRatingsList.innerHTML = "<p>You have no friends added yet.</p>";
+                    return;
+                }
+
+                snapshot.forEach(friendSnapshot => {
+                    const friendId = friendSnapshot.val(); // Get friend's UID
+
+                    // Fetch friend's username and email
+                    database.ref("users/" + friendId).once("value").then(friendUserSnap => {
+                        const friendData = friendUserSnap.val();
+                        const friendUsername = friendData.username || friendData.email || "Unknown"; // Use email if no username
+
+                        // Create a header for the friend
+                        const friendHeader = document.createElement("div");
+                        friendHeader.className = "username-header";
+                        friendHeader.innerText = friendUsername;
+                        friendsRatingsList.appendChild(friendHeader);
+
+                        // Fetch their ratings
+                        database.ref("users/" + friendId + "/ratings").once("value", ratingsSnapshot => {
+                            if (!ratingsSnapshot.exists()) {
+                                const noRatings = document.createElement("p");
+                                noRatings.innerText = "No ratings available.";
+                                friendsRatingsList.appendChild(noRatings);
+                                return;
+                            }
+
+                            ratingsSnapshot.forEach(ratingSnap => {
+                                const rating = ratingSnap.val();
+                                const ratingDiv = document.createElement("div");
+                                ratingDiv.className = "rating-container";
+                                ratingDiv.innerHTML = `
+                                    <p><strong>${rating.beerName}</strong> - ${rating.rating}/5</p>
+                                    <p><strong>Location:</strong> ${rating.location}</p>
+                                    <p><strong>Occasion:</strong> ${rating.occasion}</p>
+                                    <p><strong>Comments:</strong> ${rating.comments}</p>
+                                `;
+                                friendsRatingsList.appendChild(ratingDiv);
                             });
                         });
-
-                        // Wait for all rating promises to resolve
-                        Promise.all(ratingPromises).then(allRatings => {
-                            displayRatings(allRatings);
-                        }).catch(error => {
-                            console.error("Error fetching ratings:", error);
-                            alert("There was an error loading the ratings.");
-                        });
-                    } else {
-                        alert("You have no friends to display ratings for.");
-                    }
+                    });
                 });
-            } else {
-                alert("Please sign in to view your friends' ratings.");
-            }
+            });
         }
 
-        function displayRatings(friendsData) {
-            const ratingsList = document.getElementById("friendsRatingsList");
-            ratingsList.innerHTML = ""; // Clear previous list
-
-            if (friendsData.length === 0) {
-                ratingsList.innerHTML = "<p>No ratings available.</p>";
-            } else {
-                friendsData.forEach(friendData => {
-                    const div = document.createElement("div");
-                    div.className = "rating-container";
-                    
-                    // Add the friend's email before displaying the ratings
-                    div.innerHTML = `
-                        <h3>${friendData.username}'s Ratings:</h3>
-                        ${friendData.ratings.map(r => `
-                            <div>
-                                <p><strong>Beer Name:</strong> ${r.beerName}</p>
-                                <p><strong>Location:</strong> ${r.location}</p>
-                                <p><strong>Occasion:</strong> ${r.occasion}</p>
-                                <p><strong>Comments:</strong> ${r.comments}</p>
-                                <p><strong>Rating:</strong> ${r.rating}</p>
-                            </div>
-                        `).join("")}
-                    `;
-                    ratingsList.appendChild(div);
-                });
-            }
-        }
+        auth.onAuthStateChanged(user => {
+            if (user) loadFriendsRatings();
+        });
     </script>
 </body>
 </html>
