@@ -158,36 +158,56 @@
         }
 
         function loadRatings() {
-            const ratingsList = document.getElementById("ratingsList");
+    const ratingsList = document.getElementById("ratingsList");
+    ratingsList.innerHTML = "";
+
+    const user = localStorage.getItem("user");
+
+    database.ref("ratings").once("value", (snapshot) => {
+        let ratings = [];
+        snapshot.forEach((childSnapshot) => {
+            const rating = childSnapshot.val();
+            if (rating.user === user) {
+                ratings.push({ id: childSnapshot.key, ...rating });
+            }
+        });
+
+        ratings.sort((a, b) => Number(b.rating) - Number(a.rating));
+
+        const totalRatings = ratings.length;
+        let showAll = false;
+
+        function renderRatings() {
             ratingsList.innerHTML = "";
+            const displayedRatings = showAll ? ratings : ratings.slice(0, 5);
 
-            const user = localStorage.getItem("user");
-
-            database.ref("ratings").once("value", (snapshot) => {
-                let ratings = [];
-                snapshot.forEach((childSnapshot) => {
-                    const rating = childSnapshot.val();
-                    if (rating.user === user) {
-                        ratings.push({ id: childSnapshot.key, ...rating });
-                    }
-                });
-
-                ratings.sort((a, b) => Number(b.rating) - Number(a.rating));
-
-                ratings.forEach((r) => {
-                    const div = document.createElement("div");
-                    div.className = "rating-container";
-                    div.innerHTML = `
-                        <button class="delete-btn" onclick="deleteRating('${r.id}')">X</button>
-                        <p><strong>${r.beerName}</strong> - ${r.rating}/5</p>
-                        <p>${r.comments}</p>
-                    `;
-                    ratingsList.appendChild(div);
-                });
-            }).catch((error) => {
-                console.error("Error loading ratings:", error);
+            displayedRatings.forEach((r) => {
+                const div = document.createElement("div");
+                div.className = "rating-container";
+                div.innerHTML = `
+                    <button class="delete-btn" onclick="deleteRating('${r.id}')">X</button>
+                    <p><strong>${r.beerName}</strong> - ${r.rating}/5</p>
+                    <p>${r.comments}</p>
+                `;
+                ratingsList.appendChild(div);
             });
+
+            if (totalRatings > 5) {
+                const toggleButton = document.createElement("button");
+                toggleButton.textContent = showAll ? "Show Less" : "Show More";
+                toggleButton.onclick = () => {
+                    showAll = !showAll;
+                    renderRatings();
+                };
+                ratingsList.appendChild(toggleButton);
+            }
         }
+
+        renderRatings();
+    }).catch((error) => {
+        console.error("Error loading ratings:", error);
+    });
+}
 
         function deleteRating(ratingId) {
             database.ref("ratings/" + ratingId).remove();
