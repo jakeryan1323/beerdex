@@ -31,7 +31,6 @@
             border-radius: 5px;
             margin-bottom: 10px;
             text-align: left;
-            
         }
 
         .delete-btn {
@@ -95,22 +94,18 @@
     <script src="https://www.gstatic.com/firebasejs/11.5.0/firebase-database.js"></script>
 
     <script>
-        // Your Firebase configuration
         const firebaseConfig = {
-    apiKey: "AIzaSyBfWCzRe_nIxoDNq2pe_tC208jNDNCp7BU",
-    authDomain: "beerdex-87d10.firebaseapp.com",
-    databaseURL: "https://beerdex-87d10-default-rtdb.firebaseio.com",
-    projectId: "beerdex-87d10",
-    storageBucket: "beerdex-87d10.appspot.com",
-    messagingSenderId: "1056856047818",
-    appId: "1:1056856047818:web:ac019e2e037bf15509b433"
-};
+            apiKey: "AIzaSyBfWCzRe_nIxoDNq2pe_tC208jNDNCp7BU",
+            authDomain: "beerdex-87d10.firebaseapp.com",
+            databaseURL: "https://beerdex-87d10-default-rtdb.firebaseio.com",
+            projectId: "beerdex-87d10",
+            storageBucket: "beerdex-87d10.appspot.com",
+            messagingSenderId: "1056856047818",
+            appId: "1:1056856047818:web:ac019e2e037bf15509b433"
+        };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-
-// Set up Firebase Database
-const database = firebase.database();
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
         function login() {
             const username = document.getElementById("username").value.trim();
@@ -144,67 +139,48 @@ const database = firebase.database();
                 return;
             }
 
-            // Save to Firebase
             const newRatingRef = database.ref("ratings").push();
-            newRatingRef.set({
-                user: user,
-                beerName: beerName,
-                rating: rating,
-                comments: comments
-            }).then(() => {
-                console.log("Rating saved successfully!");
+            newRatingRef.set({ user, beerName, rating, comments }).then(() => {
                 document.getElementById("beerName").value = "";
-                document.getElementById("rating").value = "5.0";  
+                document.getElementById("rating").value = "5.0";
                 document.getElementById("comments").value = "";
-                loadRatings(); // Refresh ratings list
-            }).catch((error) => {
-                console.error("Error saving rating:", error);
-            });
-}
+                loadRatings();
+            }).catch((error) => console.error("Error saving rating:", error));
+        }
 
-function loadRatings() {
-    const ratingsList = document.getElementById("ratingsList");
-    ratingsList.innerHTML = "";
+        function loadRatings() {
+            const ratingsList = document.getElementById("ratingsList");
+            ratingsList.innerHTML = "";
+            const user = localStorage.getItem("user");
 
-    const user = localStorage.getItem("user");
+            database.ref("ratings").once("value").then((snapshot) => {
+                let ratings = [];
+                snapshot.forEach((childSnapshot) => {
+                    const rating = childSnapshot.val();
+                    if (rating.user === user) {
+                        ratings.push({ id: childSnapshot.key, ...rating });
+                    }
+                });
 
-    database.ref("ratings").once("value", (snapshot) => {
-        console.log("Snapshot data:", snapshot.val());  // Log database snapshot
-        let ratings = [];
-        snapshot.forEach((childSnapshot) => {
-            const rating = childSnapshot.val();
-            if (rating.user === user) {
-                ratings.push({ id: childSnapshot.key, ...rating });
-            }
-        });
-
-        ratings.sort((a, b) => Number(b.rating) - Number(a.rating));
-
-        ratings.forEach((r) => {
-            const div = document.createElement("div");
-            div.className = "rating-container";
-            div.innerHTML = `
-                <button class="delete-btn" onclick="deleteRating('${r.id}')">X</button>
-                <p><strong>${r.beerName}</strong> - ${r.rating}/5</p>
-                <p>${r.comments}</p>
-            `;
-            ratingsList.appendChild(div);
-        });
-    }).catch((error) => {
-        console.error("Error loading ratings:", error);
-    });
-}
+                ratings.sort((a, b) => b.rating - a.rating);
+                ratings.forEach(r => {
+                    const div = document.createElement("div");
+                    div.className = "rating-container";
+                    div.innerHTML = `<button class="delete-btn" onclick="deleteRating('${r.id}')">X</button>
+                                     <p><strong>${r.beerName}</strong> - ${r.rating}/5</p>
+                                     <p>${r.comments}</p>`;
+                    ratingsList.appendChild(div);
+                });
+            }).catch(error => console.error("Error loading ratings:", error));
+        }
 
         function deleteRating(ratingId) {
-            database.ref("ratings/" + ratingId).remove();
-            loadRatings();
+            database.ref("ratings/" + ratingId).remove().then(loadRatings);
         }
 
         (function checkLogin() {
             const user = localStorage.getItem("user");
-            if (user) {
-                showRatingForm(user);
-            }
+            if (user) showRatingForm(user);
         })();
     </script>
 </body>
