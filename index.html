@@ -94,86 +94,104 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
 
     <script>
-        // ✅ Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBfWCzRe_nIxoDNq2pe_tC208jNDNCp7BU",
-            authDomain: "beerdex-87d10.firebaseapp.com",
-            databaseURL: "https://beerdex-87d10-default-rtdb.firebaseio.com",
-            projectId: "beerdex-87d10",
-            storageBucket: "beerdex-87d10.appspot.com",
-            messagingSenderId: "1056856047818",
-            appId: "1:1056856047818:web:ac019e2e037bf15509b433"
-        };
+      // Initialize Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyBfWCzRe_nIxoDNq2pe_tC208jNDNCp7BU",
+    authDomain: "beerdex-87d10.firebaseapp.com",
+    databaseURL: "https://beerdex-87d10-default-rtdb.firebaseio.com",
+    projectId: "beerdex-87d10",
+    storageBucket: "beerdex-87d10.appspot.com",
+    messagingSenderId: "1056856047818",
+    appId: "1:1056856047818:web:ac019e2e037bf15509b433"
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+let currentUser = null;
 
-        // ✅ Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+// Handle login (Firebase Authentication)
+function login() {
+    const username = document.getElementById("username").value.trim();
+    if (!username) {
+        alert("Please enter a username.");
+        return;
+    }
 
-        function login() {
-            const username = document.getElementById("username").value.trim();
-            if (username) {
-                localStorage.setItem("user", username);
-                showRatingForm(username);
-            }
-        }
+    firebase.auth().signInAnonymously()
+        .then((userCredential) => {
+            currentUser = userCredential.user;
+            localStorage.setItem("userUID", currentUser.uid);
+            localStorage.setItem("username", username);
+            showRatingForm(username);
+        })
+        .catch((error) => {
+            console.error("Login Error:", error);
+        });
+}
 
-        function logout() {
-            localStorage.removeItem("user");
-            document.getElementById("loginForm").classList.remove("hidden");
-            document.getElementById("ratingForm").classList.add("hidden");
-        }
+// Handle logout
+function logout() {
+    localStorage.removeItem("userUID");
+    localStorage.removeItem("username");
+    firebase.auth().signOut().then(() => {
+        document.getElementById("loginForm").classList.remove("hidden");
+        document.getElementById("ratingForm").classList.add("hidden");
+    });
+}
 
-        function showRatingForm(username) {
-            document.getElementById("userDisplay").innerText = username;
-            document.getElementById("loginForm").classList.add("hidden");
-            document.getElementById("ratingForm").classList.remove("hidden");
-            loadRatings();
-        }
+// Show rating form after login
+function showRatingForm(username) {
+    document.getElementById("userDisplay").innerText = username;
+    document.getElementById("loginForm").classList.add("hidden");
+    document.getElementById("ratingForm").classList.remove("hidden");
+    loadRatings();
+}
 
-        function submitRating() {
-            const beerName = document.getElementById("beerName").value.trim();
-            const rating = parseFloat(document.getElementById("rating").value);
-            const comments = document.getElementById("comments").value.trim();
-            const user = localStorage.getItem("user");
+// Submit a rating to Firebase
+function submitRating() {
+    if (!currentUser) return alert("You must be logged in!");
 
-            if (!beerName || isNaN(rating)) {
-                alert("Please enter a beer name and select a rating.");
-                return;
-            }
+    const beerName = document.getElementById("beerName").value.trim();
+    const rating = parseFloat(document.getElementById("rating").value);
+    const comments = document.getElementById("comments").value.trim();
 
-            const newRatingRef = database.ref("ratings").push();
-            newRatingRef.set({
-                user: user,
-                beerName: beerName,
-                rating: rating,
-                comments: comments
-            }).then(() => {
-                document.getElementById("beerName").value = "";
-                document.getElementById("rating").value = "5.0";
-                document.getElementById("comments").value = "";
-                loadRatings();
-            }).catch((error) => {
-                console.error("Error saving rating:", error);
-            });
-        }
+    if (!beerName || isNaN(rating)) {
+        alert("Please enter a beer name and select a rating.");
+        return;
+    }
 
-        function loadRatings() {
+    const userUID = currentUser.uid;
+    const newRatingRef = database.ref(`ratings/${userUID}`).push();
+    
+    newRatingRef.set({
+        beerName: beerName,
+        rating: rating,
+        comments: comments
+    }).then(() => {
+        console.log("Rating saved successfully!");
+        document.getElementById("beerName").value = "";
+        document.getElementById("rating").value = "5.0";
+        document.getElementById("comments").value = "";
+        loadRatings();
+    }).catch((error) => {
+        console.error("Error saving rating:", error);
+    });
+}
+
+// Load ratings for logged-in user
+function loadRatings() {
+    if (!currentUser) return;
+
     const ratingsList = document.getElementById("ratingsList");
     ratingsList.innerHTML = "";
+    const userUID = currentUser.uid;
 
-    const user = localStorage.getItem("user");
-
-    database.ref("ratings").once("value", (snapshot) => {
+    database.ref(`ratings/${userUID}`).once("value", (snapshot) => {
         let ratings = [];
         snapshot.forEach((childSnapshot) => {
-            const rating = childSnapshot.val();
-            if (rating.user === user) {
-                ratings.push({ id: childSnapshot.key, ...rating });
-            }
+            ratings.push({ id: childSnapshot.key, ...childSnapshot.val() });
         });
 
         ratings.sort((a, b) => Number(b.rating) - Number(a.rating));
-
         const totalRatings = ratings.length;
         let showAll = false;
 
@@ -209,17 +227,24 @@
     });
 }
 
-        function deleteRating(ratingId) {
-            database.ref("ratings/" + ratingId).remove();
-            loadRatings();
-        }
+// Delete rating
+function deleteRating(ratingId) {
+    if (!currentUser) return;
 
-        (function checkLogin() {
-            const user = localStorage.getItem("user");
-            if (user) {
-                showRatingForm(user);
-            }
-        })();
+    database.ref(`ratings/${currentUser.uid}/${ratingId}`).remove()
+        .then(() => loadRatings())
+        .catch((error) => console.error("Error deleting rating:", error));
+}
+
+// Check for existing login on page load
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        currentUser = user;
+        const storedUsername = localStorage.getItem("username") || "User";
+        showRatingForm(storedUsername);
+    }
+});
+
     </script>
 </body>
 </html>
