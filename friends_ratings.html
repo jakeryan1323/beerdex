@@ -77,7 +77,12 @@
                     // Fetch friend's username and email
                     database.ref("users/" + friendId).once("value").then(friendUserSnap => {
                         const friendData = friendUserSnap.val();
-                        const friendUsername = friendData.username || friendData.email || "Unknown"; // Use email if no username
+                        if (!friendData) {
+                         console.error(`No data found for friend ID: ${friendId}`);
+                        return;
+                        }
+
+                        const friendUsername = friendData.username ? friendData.username : friendData.email ? friendData.email : "Unknown";
 
                         // Create a header for the friend
                         const friendHeader = document.createElement("div");
