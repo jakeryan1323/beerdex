@@ -45,23 +45,25 @@
         const auth = firebase.auth();
         const database = firebase.database();
 
-    function addFriendByEmail() {
+        function addFriendByEmail() {
     const email = document.getElementById("friendEmail").value.trim();
     if (email === "") {
         alert("Please enter a friend's email.");
         return;
     }
 
-    // Fetch sign-in methods for the given email
+    // Fetch sign-in methods for the provided email
     firebase.auth().fetchSignInMethodsForEmail(email)
         .then((methods) => {
+            console.log("Methods:", methods); // Check the methods associated with the email
             if (methods.length === 0) {
                 alert("No user found with that email.");
                 return;
             }
-            
-            // Get the UID of the friend
-            firebase.auth().signInWithEmailAndPassword(email, "dummyPassword")
+
+            // If the email exists, try to get the UID (use the method that works in your case)
+            // In this case, we try signing in
+            firebase.auth().signInWithEmailAndPassword(email, "dummyPassword")  // Using a dummy password
                 .then((userCredential) => {
                     const friendUid = userCredential.user.uid;
                     const currentUserUid = firebase.auth().currentUser.uid;
@@ -78,6 +80,7 @@
                         .catch(error => alert("Error adding friend to your list: " + error.message));
                 })
                 .catch((error) => {
+                    console.error("Error during dummy login", error); // Log any error here
                     alert("Error signing in user by email: " + error.message);
                 });
         })
