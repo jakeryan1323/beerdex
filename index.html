@@ -17,9 +17,7 @@
             margin: 10px 0;
             padding: 8px;
         }
-        .hidden {
-            display: none;
-        }
+        .hidden { display: none; }
         .rating-container {
             border: 1px solid #ccc;
             padding: 10px;
@@ -30,23 +28,13 @@
         }
         .delete-btn {
             position: absolute;
-            top: 0px;
-            right: 5px;
+            top: 5px;
+            right: 10px;
             background: none;
             border: none;
-            color: rgb(240, 129, 129);
-            font-size: 14px;
-            cursor: pointer;
+            color: red;
             font-weight: bold;
-            padding: 0;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .delete-btn:hover {
-            color: darkred;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -62,7 +50,9 @@
     <div id="ratingForm" class="hidden">
         <h2>Rate a Beer</h2>
         <p>Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
+        
         <input type="text" id="beerName" placeholder="Beer Name">
+        
         <label for="rating">Rating:</label>
         <select id="rating">
             <option value="5.0">5.0</option>
@@ -75,14 +65,18 @@
             <option value="1.5">1.5</option>
             <option value="1.0">1.0</option>
         </select>
-        <textarea id="comments" placeholder="Your Comments"></textarea>
+
+        <input type="text" id="location" placeholder="Location (e.g., Bar XYZ)">
+        <input type="text" id="occasion" placeholder="Occasion (e.g., Birthday Party)">
+        <textarea id="comments" placeholder="Overall Comments"></textarea>
+        
         <button onclick="submitRating()">Submit</button>
+        
         <h3>Your Ratings:</h3>
         <div id="ratingsList"></div>
         <button id="showMoreBtn" class="hidden" onclick="showAllRatings()">Show More</button>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
@@ -109,9 +103,7 @@
             const password = document.getElementById("password").value;
 
             auth.createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    alert("Account created! Please log in.");
-                })
+                .then(() => alert("Account created! Please log in."))
                 .catch(error => alert(error.message));
         }
 
@@ -120,9 +112,7 @@
             const password = document.getElementById("password").value;
 
             auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    showRatingForm(userCredential.user);
-                })
+                .then(userCredential => showRatingForm(userCredential.user))
                 .catch(error => alert(error.message));
         }
 
@@ -143,6 +133,8 @@
         function submitRating() {
             const beerName = document.getElementById("beerName").value.trim();
             const rating = parseFloat(document.getElementById("rating").value);
+            const location = document.getElementById("location").value.trim();
+            const occasion = document.getElementById("occasion").value.trim();
             const comments = document.getElementById("comments").value.trim();
             const user = auth.currentUser;
 
@@ -152,11 +144,11 @@
             }
 
             database.ref("users/" + user.uid + "/ratings").push({
-                beerName: beerName,
-                rating: rating,
-                comments: comments
+                beerName, rating, location, occasion, comments
             }).then(() => {
                 document.getElementById("beerName").value = "";
+                document.getElementById("location").value = "";
+                document.getElementById("occasion").value = "";
                 document.getElementById("comments").value = "";
                 loadRatings(user.uid);
             });
@@ -168,13 +160,13 @@
             const showMoreBtn = document.getElementById("showMoreBtn");
             let allRatings = [];
 
-            database.ref("users/" + userId + "/ratings").once("value", (snapshot) => {
-                snapshot.forEach((childSnapshot) => {
+            database.ref("users/" + userId + "/ratings").once("value", snapshot => {
+                snapshot.forEach(childSnapshot => {
                     allRatings.push({ id: childSnapshot.key, ...childSnapshot.val() });
                 });
 
                 allRatings.sort((a, b) => b.rating - a.rating);
-                displayRatings(allRatings.slice(0, 5)); // Show top 5 initially
+                displayRatings(allRatings.slice(0, 5)); 
                 showMoreBtn.classList.toggle("hidden", allRatings.length <= 5);
             });
         }
@@ -182,13 +174,15 @@
         function displayRatings(ratings) {
             const ratingsList = document.getElementById("ratingsList");
             ratingsList.innerHTML = "";
-            ratings.forEach((r) => {
+            ratings.forEach(r => {
                 const div = document.createElement("div");
                 div.className = "rating-container";
                 div.innerHTML = `
                     <button class="delete-btn" onclick="deleteRating('${r.id}')">X</button>
                     <p><strong>${r.beerName}</strong> - ${r.rating}/5</p>
-                    <p>${r.comments}</p>
+                    <p><strong>Location:</strong> ${r.location}</p>
+                    <p><strong>Occasion:</strong> ${r.occasion}</p>
+                    <p><strong>Comments:</strong> ${r.comments}</p>
                 `;
                 ratingsList.appendChild(div);
             });
@@ -197,9 +191,9 @@
         function showAllRatings() {
             const user = auth.currentUser;
             if (user) {
-                database.ref("users/" + user.uid + "/ratings").once("value", (snapshot) => {
+                database.ref("users/" + user.uid + "/ratings").once("value", snapshot => {
                     let allRatings = [];
-                    snapshot.forEach((childSnapshot) => {
+                    snapshot.forEach(childSnapshot => {
                         allRatings.push({ id: childSnapshot.key, ...childSnapshot.val() });
                     });
 
@@ -210,9 +204,7 @@
             }
         }
 
-        auth.onAuthStateChanged((user) => {
-            if (user) showRatingForm(user);
-        });
+        auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
     </script>
 </body>
 </html>
