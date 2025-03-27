@@ -53,8 +53,10 @@
         <h2>Login / Sign Up</h2>
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="password" placeholder="Password">
+        <input type="text" id="username" placeholder="Username (Optional)">
         <button onclick="signUp()">Sign Up</button>
         <button onclick="login()">Login</button>
+        <p><a href="add_friend.html">Add a Friend</a></p>
     </div>
 
     <div id="ratingForm" class="hidden">
@@ -62,7 +64,6 @@
         <p>Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
         
         <input type="text" id="beerName" placeholder="Beer Name">
-        <p><a href="add_friend.html">Add a Friend</a></p>
         <label for="rating">Rating:</label>
         <select id="rating">
             <option value="5.0">5.0</option>
@@ -110,24 +111,27 @@
         const database = firebase.database();
 
         function signUp() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const username = document.getElementById("username").value;
 
-    auth.createUserWithEmailAndPassword(email, password)
-        .then(userCredential => {
-            const user = userCredential.user;
-            
-            // After creating the user, store the email in Realtime Database
-            firebase.database().ref("users/" + user.uid).set({
-                email: user.email // Storing the email with the UID as the key
-            }).then(() => {
-                alert("Account created! Please log in.");
-            }).catch(error => {
-                alert("Error saving user data: " + error.message);
-            });
-        })
-        .catch(error => alert(error.message));
-}
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    const user = userCredential.user;
+
+                    // Store email and username in the Realtime Database
+                    firebase.database().ref("users/" + user.uid).set({
+                        email: user.email,
+                        username: username || "Anonymous"  // Use 'Anonymous' if no username is provided
+                    }).then(() => {
+                        alert("Account created! Please log in.");
+                    }).catch(error => {
+                        alert("Error saving user data: " + error.message);
+                    });
+                })
+                .catch(error => alert(error.message));
+        }
+
         function login() {
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
@@ -145,7 +149,14 @@
         }
 
         function showRatingForm(user) {
-            document.getElementById("userDisplay").innerText = user.email;
+            // Get the username and display it
+            firebase.database().ref("users/" + user.uid).once("value")
+                .then(snapshot => {
+                    const userData = snapshot.val();
+                    const username = userData.username;
+                    document.getElementById("userDisplay").innerText = username; // Show the username instead of email
+                });
+
             document.getElementById("authForm").classList.add("hidden");
             document.getElementById("ratingForm").classList.remove("hidden");
             loadRatings(user.uid);
@@ -227,22 +238,22 @@
 
         auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
 
-         // Function to delete a rating from Firebase
-    function deleteRating(ratingId) {
-        const user = auth.currentUser;
-        
-        if (user) {
-            // Remove the rating from Firebase
-            database.ref("users/" + user.uid + "/ratings/" + ratingId).remove()
-                .then(() => {
-                    // Reload ratings after deletion
-                    loadRatings(user.uid);
-                })
-                .catch(error => {
-                    alert("Error deleting rating: " + error.message);
-                });
+        // Function to delete a rating from Firebase
+        function deleteRating(ratingId) {
+            const user = auth.currentUser;
+            
+            if (user) {
+                // Remove the rating from Firebase
+                database.ref("users/" + user.uid + "/ratings/" + ratingId).remove()
+                    .then(() => {
+                        // Reload ratings after deletion
+                        loadRatings(user.uid);
+                    })
+                    .catch(error => {
+                        alert("Error deleting rating: " + error.message);
+                    });
+            }
         }
-    }
     </script>
 </body>
 </html>
