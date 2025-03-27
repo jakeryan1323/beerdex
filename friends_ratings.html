@@ -40,6 +40,17 @@
         const auth = firebase.auth();
         const database = firebase.database();
 
+        // Wait for the Firebase Auth state to load
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                // Once authenticated, load friends' ratings
+                loadFriendsRatings();
+            } else {
+                // If no user is signed in, show an error message
+                alert("Please sign in to view your friends' ratings.");
+            }
+        });
+
         function loadFriendsRatings() {
             const user = auth.currentUser;
             if (user) {
@@ -103,9 +114,6 @@
                 });
             }
         }
-
-        // Load the ratings on page load
-        window.onload = loadFriendsRatings;
     </script>
 </body>
 </html>
