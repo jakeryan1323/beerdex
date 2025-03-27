@@ -52,7 +52,7 @@
                 return;
             }
 
-            // Find user by email and get their UID
+            // Step 1: Find the user by email and get their UID
             firebase.auth().fetchSignInMethodsForEmail(email)
                 .then(methods => {
                     if (methods.length === 0) {
@@ -60,13 +60,14 @@
                         return;
                     }
 
-                    // Get the UID of the friend
-                    firebase.auth().signInWithEmailAndPassword(email, "dummyPassword")  // Use a dummy login for this process
-                        .then((userCredential) => {
-                            const friendUid = userCredential.user.uid;
+                    // Step 2: Get the UID of the friend (fetch the UID based on email)
+                    firebase.database().ref("users").orderByChild("email").equalTo(email).once("value", snapshot => {
+                        if (snapshot.exists()) {
+                            const friendUid = Object.keys(snapshot.val())[0];  // Get the UID from the snapshot
+
                             const currentUserUid = firebase.auth().currentUser.uid;
-                            
-                            // Add the friend to both users' friend lists
+
+                            // Step 3: Add the friend to both users' friend lists
                             firebase.database().ref("users/" + currentUserUid + "/friends/" + friendUid).set(true)
                                 .then(() => {
                                     firebase.database().ref("users/" + friendUid + "/friends/" + currentUserUid).set(true)
@@ -76,8 +77,10 @@
                                         .catch(error => alert("Error adding friend to friend's list: " + error.message));
                                 })
                                 .catch(error => alert("Error adding friend to your list: " + error.message));
-                        })
-                        .catch(error => alert("Error finding user by email: " + error.message));
+                        } else {
+                            alert("No user found with that email.");
+                        }
+                    });
                 })
                 .catch(error => alert("Error fetching sign-in methods: " + error.message));
         }
