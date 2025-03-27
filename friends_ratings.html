@@ -75,7 +75,12 @@
                 }
 
                 snapshot.forEach(friendSnapshot => {
-                    const friendId = friendSnapshot.val(); // Get friend's UID
+                    const friendId = friendSnapshot.key; // FIX: Get the key as the friend's UID
+
+                    if (!friendId || typeof friendId !== "string") {
+                        console.error(`Invalid friend ID: ${friendId}`);
+                        return;
+                    }
 
                     database.ref("users/" + friendId).once("value").then(friendUserSnap => {
                         const friendData = friendUserSnap.val();
