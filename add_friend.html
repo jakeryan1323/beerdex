@@ -45,51 +45,61 @@
         const auth = firebase.auth();
         const database = firebase.database();
 
-        function addFriendByEmail() {
+    function addFriendByEmail() {
     const email = document.getElementById("friendEmail").value.trim();
     if (email === "") {
         alert("Please enter a friend's email.");
         return;
     }
+    console.log("Checking email:", email);  // Debugging line
 
     // Fetch sign-in methods for the provided email
     firebase.auth().fetchSignInMethodsForEmail(email)
         .then((methods) => {
-            console.log("Methods:", methods); // Check the methods associated with the email
+            console.log("Fetched sign-in methods:", methods); // Check the methods associated with the email
             if (methods.length === 0) {
                 alert("No user found with that email.");
                 return;
             }
 
-            // If the email exists, try to get the UID (use the method that works in your case)
-            // In this case, we try signing in
-            firebase.auth().signInWithEmailAndPassword(email, "dummyPassword")  // Using a dummy password
-                .then((userCredential) => {
-                    const friendUid = userCredential.user.uid;
-                    const currentUserUid = firebase.auth().currentUser.uid;
+                // Get the UID of the friend
+                firebase.auth().getUserByEmail(email)
+                    .then(friend => {
+                        const friendUid = friend.uid;
+                        const currentUserUid = firebase.auth().currentUser.uid;
 
-                    // Add the friend to both users' friend lists
-                    firebase.database().ref("users/" + currentUserUid + "/friends/" + friendUid).set(true)
-                        .then(() => {
-                            firebase.database().ref("users/" + friendUid + "/friends/" + currentUserUid).set(true)
-                                .then(() => {
-                                    alert("Friend added successfully!");
-                                })
-                                .catch(error => alert("Error adding friend to friend's list: " + error.message));
-                        })
-                        .catch(error => alert("Error adding friend to your list: " + error.message));
-                })
-                .catch((error) => {
-                    console.error("Error during dummy login", error); // Log any error here
-                    alert("Error signing in user by email: " + error.message);
-                });
-        })
-        .catch((error) => {
-            alert("Error fetching sign-in methods: " + error.message);
-        });
-}
+                        // Check if friend already exists in the current user's friend list
+                        firebase.database().ref("users/" + currentUserUid + "/friends/" + friendUid).once('value')
+                            .then(snapshot => {
+                                if (snapshot.exists()) {
+                                    alert("This user is already your friend.");
+                                    return;
+                                }
 
+                                // Add the friend to both users' friend lists
+                                firebase.database().ref("users/" + currentUserUid + "/friends/" + friendUid).set(true)
+                                    .then(() => {
+                                        firebase.database().ref("users/" + friendUid + "/friends/" + currentUserUid).set(true)
+                                            .then(() => {
+                                                alert("Friend added successfully!");
+                                            })
+                                            .catch(error => alert("Error adding friend to friend's list: " + error.message));
+                                    })
+                                    .catch(error => alert("Error adding friend to your list: " + error.message));
+                            })
+                            .catch(error => alert("Error checking friend's list: " + error.message));
+                    })
+                    .catch(error => {
+                        console.error("Error fetching user by email:", error);  // Debugging line
+                        alert("Error fetching user by email: " + error.message);
+                    });
+            })
+            .catch(error => {
+                console.error("Error fetching sign-in methods:", error);  // Debugging line
+                alert("Error fetching sign-in methods: " + error.message);
+            });
 
+        }
 
         function goToHomePage() {
             window.location.href = "index.html";  // Replace "index.html" with your home page filename
