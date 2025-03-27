@@ -149,44 +149,49 @@
                 beerName: beerName,
                 rating: rating,
                 comments: comments
+            }).then(() => {
+                console.log("Rating saved successfully!");
+                document.getElementById("beerName").value = "";
+                document.getElementById("rating").value = "5.0";  
+                document.getElementById("comments").value = "";
+                loadRatings(); // Refresh ratings list
+            }).catch((error) => {
+                console.error("Error saving rating:", error);
             });
+}
 
-            document.getElementById("beerName").value = "";
-            document.getElementById("rating").value = "5.0";  
-            document.getElementById("comments").value = "";
+function loadRatings() {
+    const ratingsList = document.getElementById("ratingsList");
+    ratingsList.innerHTML = "";
 
-            loadRatings();
-        }
+    const user = localStorage.getItem("user");
 
-        function loadRatings() {
-            const ratingsList = document.getElementById("ratingsList");
-            ratingsList.innerHTML = "";
+    database.ref("ratings").once("value", (snapshot) => {
+        console.log("Snapshot data:", snapshot.val());  // Log database snapshot
+        let ratings = [];
+        snapshot.forEach((childSnapshot) => {
+            const rating = childSnapshot.val();
+            if (rating.user === user) {
+                ratings.push({ id: childSnapshot.key, ...rating });
+            }
+        });
 
-            const user = localStorage.getItem("user");
+        ratings.sort((a, b) => Number(b.rating) - Number(a.rating));
 
-            database.ref("ratings").once("value", (snapshot) => {
-                let ratings = [];
-                snapshot.forEach((childSnapshot) => {
-                    const rating = childSnapshot.val();
-                    if (rating.user === user) {
-                        ratings.push({ id: childSnapshot.key, ...rating });
-                    }
-                });
-
-                ratings.sort((a, b) => Number(b.rating) - Number(a.rating));
-
-                ratings.forEach((r) => {
-                    const div = document.createElement("div");
-                    div.className = "rating-container";
-                    div.innerHTML = `
-                        <button class="delete-btn" onclick="deleteRating('${r.id}')">X</button>
-                        <p><strong>${r.beerName}</strong> - ${r.rating}/5</p>
-                        <p>${r.comments}</p>
-                    `;
-                    ratingsList.appendChild(div);
-                });
-            });
-        }
+        ratings.forEach((r) => {
+            const div = document.createElement("div");
+            div.className = "rating-container";
+            div.innerHTML = `
+                <button class="delete-btn" onclick="deleteRating('${r.id}')">X</button>
+                <p><strong>${r.beerName}</strong> - ${r.rating}/5</p>
+                <p>${r.comments}</p>
+            `;
+            ratingsList.appendChild(div);
+        });
+    }).catch((error) => {
+        console.error("Error loading ratings:", error);
+    });
+}
 
         function deleteRating(ratingId) {
             database.ref("ratings/" + ratingId).remove();
