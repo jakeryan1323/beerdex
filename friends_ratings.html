@@ -29,12 +29,11 @@
         }
         .stars {
             display: flex;
-            gap: 2px;
-            margin-bottom: 5px;
         }
-        .star {
+        .stars img {
             width: 20px;
             height: 20px;
+            margin-right: 2px;
         }
     </style>
 </head>
@@ -64,6 +63,27 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const database = firebase.database();
+
+        function createStars(container, rating) {
+            container.innerHTML = ""; // Clear existing stars
+            const fullStar = "full.jpg";
+            const halfStar = "half.jpg";
+            const emptyStar = "empty.jpg";
+
+            for (let i = 1; i <= 5; i++) {
+                let starImg = document.createElement("img");
+
+                if (rating >= i) {
+                    starImg.src = fullStar;
+                } else if (rating >= i - 0.5) {
+                    starImg.src = halfStar;
+                } else {
+                    starImg.src = emptyStar;
+                }
+
+                container.appendChild(starImg);
+            }
+        }
 
         function loadFriendsRatings() {
             const user = auth.currentUser;
@@ -119,19 +139,29 @@
                             } else {
                                 ratingsSnapshot.forEach(ratingSnap => {
                                     const rating = ratingSnap.val();
+                                    const ratingId = `stars-${ratingSnap.key}`;
+
                                     const ratingDiv = document.createElement("div");
                                     ratingDiv.className = "rating-container";
                                     ratingDiv.innerHTML = `
                                         <p><strong>${rating.beerName}</strong></p>
-                                        <div class="stars" id="stars-${ratingSnap.key}"></div>
+                                        <div id="${ratingId}" class="stars"></div>
                                         <p><strong>Location:</strong> ${rating.location}</p>
                                         <p><strong>Occasion:</strong> ${rating.occasion}</p>
                                         <p><strong>Comments:</strong> ${rating.comments}</p>
                                     `;
+
                                     friendContainer.appendChild(ratingDiv);
 
-                                    // Render stars inside the rating container
-                                    createStars(document.getElementById(`stars-${ratingSnap.key}`), rating.rating);
+                                    // Delay the star rendering to ensure the element exists
+                                    setTimeout(() => {
+                                        const starsContainer = document.getElementById(ratingId);
+                                        if (starsContainer) {
+                                            createStars(starsContainer, rating.rating);
+                                        } else {
+                                            console.error("Stars container not found for:", ratingSnap.key);
+                                        }
+                                    }, 0);
                                 });
                             }
                             // Append each friend's ratings under their name
@@ -140,22 +170,6 @@
                     });
                 });
             });
-        }
-
-        function createStars(container, rating) {
-            container.innerHTML = ""; // Clear any existing stars
-            for (let i = 1; i <= 5; i++) {
-                const starImg = document.createElement("img");
-                if (rating >= i) {
-                    starImg.src = "full.jpg"; // Full star
-                } else if (rating >= i - 0.5) {
-                    starImg.src = "half.jpg"; // Half star
-                } else {
-                    starImg.src = "empty.jpg"; // Empty star
-                }
-                starImg.className = "star";
-                container.appendChild(starImg);
-            }
         }
 
         auth.onAuthStateChanged(user => {
