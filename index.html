@@ -59,14 +59,20 @@
         }
 
         .edit-btn {
-        position: absolute;
-        top: 0px;
-        left: 5px;
-        background: none;
-        border: none;
-        font-size: 16px;
-        cursor: pointer;
-        padding: 0; 
+            position: absolute;
+            top: 0px;
+            left: 5px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
 }
     .edit-btn:hover {
         color: darkblue;
@@ -230,14 +236,15 @@
             updateStars(starContainer, ratingData.rating);
 
             ratingDiv.innerHTML = `
-                <button class="edit-btn" onclick="editRating('${childSnapshot.key}')">📝</button>
-                <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
-                <p><strong>${ratingData.beerName}</strong></p>
-                <p><strong>Date:</strong> ${ratingData.date ? new Date(ratingData.date).toLocaleDateString() : "Unknown"}</p>
-                <p><strong>Location:</strong> ${ratingData.location}</p>
-                <p><strong>Occasion:</strong> ${ratingData.occasion}</p>
-                <p><strong>Comments:</strong> ${ratingData.comments}</p>
-            `;
+            <button class="edit-btn" onclick="editRating('${childSnapshot.key}')">📝</button>
+            <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
+            <p><strong>Beer Name:</strong> <span id="beer-${childSnapshot.key}">${ratingData.beerName}</span></p>
+            <div id="stars-${childSnapshot.key}" class="stars"></div>
+            <p><strong>Location:</strong> <span id="location-${childSnapshot.key}">${ratingData.location}</span></p>
+            <p><strong>Occasion:</strong> <span id="occasion-${childSnapshot.key}">${ratingData.occasion}</span></p>
+            <p><strong>Comments:</strong> <span id="comments-${childSnapshot.key}">${ratingData.comments}</span></p>
+        `;
+
             ratingDiv.appendChild(starContainer);
             ratingsList.appendChild(ratingDiv);
         });
@@ -248,16 +255,44 @@
         auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
 
         function editRating(ratingId) {
-    const newComment = prompt("Edit your comment:");
-    if (newComment !== null) {
-        const user = auth.currentUser;
-        database.ref(`users/${user.uid}/ratings/${ratingId}`).update({
-            comments: newComment
-        }).then(() => {
-            alert("Comment updated!");
-            loadRatings(user.uid); // Reload ratings
-        });
-    }
+    const beerSpan = document.getElementById(`beer-${ratingId}`);
+    const locationSpan = document.getElementById(`location-${ratingId}`);
+    const occasionSpan = document.getElementById(`occasion-${ratingId}`);
+    const commentsSpan = document.getElementById(`comments-${ratingId}`);
+    
+    // Create input fields with current values
+    beerSpan.innerHTML = `<input type="text" id="edit-beer-${ratingId}" value="${beerSpan.innerText}">`;
+    locationSpan.innerHTML = `<input type="text" id="edit-location-${ratingId}" value="${locationSpan.innerText}">`;
+    occasionSpan.innerHTML = `<input type="text" id="edit-occasion-${ratingId}" value="${occasionSpan.innerText}">`;
+    commentsSpan.innerHTML = `<input type="text" id="edit-comments-${ratingId}" value="${commentsSpan.innerText}">`;
+
+    // Create a Save button
+    const saveButton = document.createElement("button");
+    saveButton.innerText = "Save";
+    saveButton.onclick = function () {
+        saveEditedRating(ratingId);
+    };
+
+    // Append Save button next to edit button
+    document.querySelector(`[onclick="editRating('${ratingId}')"]`).after(saveButton);
+}
+
+function saveEditedRating(ratingId) {
+    const user = auth.currentUser;
+    const newBeerName = document.getElementById(`edit-beer-${ratingId}`).value;
+    const newLocation = document.getElementById(`edit-location-${ratingId}`).value;
+    const newOccasion = document.getElementById(`edit-occasion-${ratingId}`).value;
+    const newComments = document.getElementById(`edit-comments-${ratingId}`).value;
+
+    database.ref(`users/${user.uid}/ratings/${ratingId}`).update({
+        beerName: newBeerName,
+        location: newLocation,
+        occasion: newOccasion,
+        comments: newComments
+    }).then(() => {
+        alert("Rating updated!");
+        loadRatings(user.uid); // Reload ratings to show updated values
+    });
 }
     </script>
 </body>
