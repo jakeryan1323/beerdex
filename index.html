@@ -109,7 +109,6 @@
         <button onclick="submitRating()">Submit</button>
         
         <h3>Your Ratings:</h3>
-        <button id="sortBtn" onclick="toggleSort()">Sort by Highest Rating</button>
         <div id="ratingsList"></div>
         <button id="showMoreBtn" class="hidden" onclick="showAllRatings()">Show More</button>
         <button onclick="window.location.href='friends_ratings.html'">View Friends' Ratings</button>
@@ -221,48 +220,32 @@
             loadRatings(user.uid);
         }
 
-        let sortOption = "date"; // Default sorting method
-
         function loadRatings(userId) {
     const ratingsList = document.getElementById("ratingsList");
     ratingsList.innerHTML = "";
 
     database.ref("users/" + userId + "/ratings").once("value", snapshot => {
-        let ratingsArray = [];
-
         snapshot.forEach(childSnapshot => {
-            let ratingData = childSnapshot.val();
-            ratingData.id = childSnapshot.key; // Store the ID for editing/deleting
-            ratingsArray.push(ratingData);
-        });
-
-        // SORT LOGIC
-        if (sortOption === "rating") {
-            ratingsArray.sort((a, b) => b.rating - a.rating); // Highest to lowest rating
-        } else if (sortOption === "date") {
-            ratingsArray.sort((a, b) => new Date(b.date) - new Date(a.date)); // Most recent first
-        }
-
-        // DISPLAY RATINGS
-        ratingsArray.forEach(ratingData => {
+            const ratingData = childSnapshot.val();
             const ratingDiv = document.createElement("div");
             ratingDiv.className = "rating-container";
-            ratingDiv.setAttribute("data-id", ratingData.id); // Store the ID in the element
-            
+
             const starContainer = document.createElement("div");
             starContainer.className = "stars";
-            createRatingStars(starContainer, () => {}); 
+            createRatingStars(starContainer, () => {});
             updateStars(starContainer, ratingData.rating);
 
             ratingDiv.innerHTML = `
-                <button class="delete-btn" onclick="deleteRating('${ratingData.id}')">X</button>
-                <button class="edit-btn" onclick="editRating('${ratingData.id}')">✏️</button>
-                <p><strong id="beer-${ratingData.id}">${ratingData.beerName}</strong></p>
-                <p><strong>Location:</strong> <span id="location-${ratingData.id}">${ratingData.location}</span></p>
-                <p><strong>Occasion:</strong> <span id="occasion-${ratingData.id}">${ratingData.occasion}</span></p>
-                <p><strong>Comments:</strong> <span id="comments-${ratingData.id}">${ratingData.comments}</span></p>
-                <p><strong>Date:</strong> <span id="date-${ratingData.id}">${ratingData.date}</span></p>
-            `;
+            <button class="edit-btn" onclick="editRating('${childSnapshot.key}')">📝</button>
+            <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
+            <br><p><strong>Beer Name:</strong> <span id="beer-${childSnapshot.key}">${ratingData.beerName}</span></p>
+            <p><strong>Date:</strong> <span id="date-${childSnapshot.key}">${ratingData.date}</span></p> <!-- Display the date -->
+            <div id="stars-${childSnapshot.key}" class="stars"></div>
+            <p><strong>Location:</strong> <span id="location-${childSnapshot.key}">${ratingData.location}</span></p>
+            <p><strong>Occasion:</strong> <span id="occasion-${childSnapshot.key}">${ratingData.occasion}</span></p>
+            <p><strong>Comments:</strong> <span id="comments-${childSnapshot.key}">${ratingData.comments}</span></p>
+        `;
+
             ratingDiv.appendChild(starContainer);
             ratingsList.appendChild(ratingDiv);
         });
@@ -270,51 +253,48 @@
 }
 
 
-function editRating(ratingId) {
-    const ratingDiv = document.querySelector(`div[data-id="${ratingId}"]`);
-    const beerName = ratingDiv.querySelector(`#beer-${ratingId}`).innerText;
-    const location = ratingDiv.querySelector(`#location-${ratingId}`).innerText;
-    const occasion = ratingDiv.querySelector(`#occasion-${ratingId}`).innerText;
-    const comments = ratingDiv.querySelector(`#comments-${ratingId}`).innerText;
-    const date = ratingDiv.querySelector(`#date-${ratingId}`).innerText;
+        auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
 
-    // Pre-populate the edit form with the current data
-    document.getElementById("beerName").value = beerName;
-    document.getElementById("location").value = location;
-    document.getElementById("occasion").value = occasion;
-    document.getElementById("comments").value = comments;
+        function editRating(ratingId) {
+    const beerSpan = document.getElementById(`beer-${ratingId}`);
+    const locationSpan = document.getElementById(`location-${ratingId}`);
+    const occasionSpan = document.getElementById(`occasion-${ratingId}`);
+    const commentsSpan = document.getElementById(`comments-${ratingId}`);
+    const dateSpan = document.getElementById(`date-${ratingId}`);
+    const starsContainer = document.getElementById(`stars-${ratingId}`);
 
-    // Allow the user to update the rating and re-render stars
-    selectedRating = ratingDiv.querySelector(".stars").getAttribute('data-rating'); // Assume you store the rating data in the stars
+    // Store current values
+    const currentBeer = beerSpan.innerText;
+    const currentLocation = locationSpan.innerText;
+    const currentOccasion = occasionSpan.innerText;
+    const currentComments = commentsSpan.innerText;
+    const currentDate = dateSpan.innerText;
 
-    // Provide a way to update this rating
-    document.querySelector('#ratingStars').innerHTML = "";  // Clear existing stars
-    createRatingStars(document.querySelector('#ratingStars'), function(newRating) {
-        selectedRating = newRating;
+    // Make text fields editable
+    beerSpan.innerHTML = `<input type="text" id="edit-beer-${ratingId}" value="${currentBeer}">`;
+    locationSpan.innerHTML = `<input type="text" id="edit-location-${ratingId}" value="${currentLocation}">`;
+    occasionSpan.innerHTML = `<input type="text" id="edit-occasion-${ratingId}" value="${currentOccasion}">`;
+    commentsSpan.innerHTML = `<input type="text" id="edit-comments-${ratingId}" value="${currentComments}">`;
+    dateSpan.innerHTML = `<input type="text" id="edit-date-${ratingId}" value="${currentDate}">`;
+
+    // Replace stars with an interactive rating selector
+    let newRating = parseFloat(starsContainer.dataset.rating); // Get current rating
+    starsContainer.innerHTML = "";
+    createRatingStars(starsContainer, function (rating) {
+        newRating = rating;
+        updateStars(starsContainer, rating);
     });
 
-    // Add the submit logic for the edit
-    document.querySelector("#submitEditBtn").onclick = function() {
-        const updatedBeerName = document.getElementById("beerName").value;
-        const updatedLocation = document.getElementById("location").value;
-        const updatedOccasion = document.getElementById("occasion").value;
-        const updatedComments = document.getElementById("comments").value;
-
-        // Update in the Firebase database
-        firebase.database().ref("users/" + auth.currentUser.uid + "/ratings/" + ratingId).update({
-            beerName: updatedBeerName,
-            location: updatedLocation,
-            occasion: updatedOccasion,
-            comments: updatedComments,
-            rating: selectedRating
-        }).then(() => {
-            alert("Rating updated successfully!");
-            loadRatings(auth.currentUser.uid);  // Reload the ratings list
-        });
+    // Add a Save button
+    const saveButton = document.createElement("button");
+    saveButton.innerText = "Save";
+    saveButton.onclick = function () {
+        saveEditedRating(ratingId, newRating);
     };
+
+    // Append Save button next to Edit button
+    document.querySelector(`[onclick="editRating('${ratingId}')"]`).after(saveButton);
 }
-
-
 
 
 function saveEditedRating(ratingId, newRating) {
