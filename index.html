@@ -223,7 +223,7 @@
 
         let sortOption = "date"; // Default sorting method
 
-function loadRatings(userId) {
+        function loadRatings(userId) {
     const ratingsList = document.getElementById("ratingsList");
     ratingsList.innerHTML = "";
 
@@ -247,6 +247,8 @@ function loadRatings(userId) {
         ratingsArray.forEach(ratingData => {
             const ratingDiv = document.createElement("div");
             ratingDiv.className = "rating-container";
+            ratingDiv.setAttribute("data-id", ratingData.id); // Store the ID in the element
+            
             const starContainer = document.createElement("div");
             starContainer.className = "stars";
             createRatingStars(starContainer, () => {}); 
@@ -267,60 +269,52 @@ function loadRatings(userId) {
     });
 }
 
-function toggleSort() {
-    if (sortOption === "date") {
-        sortOption = "rating";
-        document.getElementById("sortBtn").innerText = "Sort by Most Recent";
-    } else {
-        sortOption = "date";
-        document.getElementById("sortBtn").innerText = "Sort by Highest Rating";
-    }
-    loadRatings(auth.currentUser.uid); // Reload ratings with new sort order
-}
 
+function editRating(ratingId) {
+    const ratingDiv = document.querySelector(`div[data-id="${ratingId}"]`);
+    const beerName = ratingDiv.querySelector(`#beer-${ratingId}`).innerText;
+    const location = ratingDiv.querySelector(`#location-${ratingId}`).innerText;
+    const occasion = ratingDiv.querySelector(`#occasion-${ratingId}`).innerText;
+    const comments = ratingDiv.querySelector(`#comments-${ratingId}`).innerText;
+    const date = ratingDiv.querySelector(`#date-${ratingId}`).innerText;
 
-        auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
+    // Pre-populate the edit form with the current data
+    document.getElementById("beerName").value = beerName;
+    document.getElementById("location").value = location;
+    document.getElementById("occasion").value = occasion;
+    document.getElementById("comments").value = comments;
 
-        function editRating(ratingId) {
-    const beerSpan = document.getElementById(`beer-${ratingId}`);
-    const locationSpan = document.getElementById(`location-${ratingId}`);
-    const occasionSpan = document.getElementById(`occasion-${ratingId}`);
-    const commentsSpan = document.getElementById(`comments-${ratingId}`);
-    const dateSpan = document.getElementById(`date-${ratingId}`);
-    const starsContainer = document.getElementById(`stars-${ratingId}`);
+    // Allow the user to update the rating and re-render stars
+    selectedRating = ratingDiv.querySelector(".stars").getAttribute('data-rating'); // Assume you store the rating data in the stars
 
-    // Store current values
-    const currentBeer = beerSpan.innerText;
-    const currentLocation = locationSpan.innerText;
-    const currentOccasion = occasionSpan.innerText;
-    const currentComments = commentsSpan.innerText;
-    const currentDate = dateSpan.innerText;
-
-    // Make text fields editable
-    beerSpan.innerHTML = `<input type="text" id="edit-beer-${ratingId}" value="${currentBeer}">`;
-    locationSpan.innerHTML = `<input type="text" id="edit-location-${ratingId}" value="${currentLocation}">`;
-    occasionSpan.innerHTML = `<input type="text" id="edit-occasion-${ratingId}" value="${currentOccasion}">`;
-    commentsSpan.innerHTML = `<input type="text" id="edit-comments-${ratingId}" value="${currentComments}">`;
-    dateSpan.innerHTML = `<input type="text" id="edit-date-${ratingId}" value="${currentDate}">`;
-
-    // Replace stars with an interactive rating selector
-    let newRating = parseFloat(starsContainer.dataset.rating); // Get current rating
-    starsContainer.innerHTML = "";
-    createRatingStars(starsContainer, function (rating) {
-        newRating = rating;
-        updateStars(starsContainer, rating);
+    // Provide a way to update this rating
+    document.querySelector('#ratingStars').innerHTML = "";  // Clear existing stars
+    createRatingStars(document.querySelector('#ratingStars'), function(newRating) {
+        selectedRating = newRating;
     });
 
-    // Add a Save button
-    const saveButton = document.createElement("button");
-    saveButton.innerText = "Save";
-    saveButton.onclick = function () {
-        saveEditedRating(ratingId, newRating);
-    };
+    // Add the submit logic for the edit
+    document.querySelector("#submitEditBtn").onclick = function() {
+        const updatedBeerName = document.getElementById("beerName").value;
+        const updatedLocation = document.getElementById("location").value;
+        const updatedOccasion = document.getElementById("occasion").value;
+        const updatedComments = document.getElementById("comments").value;
 
-    // Append Save button next to Edit button
-    document.querySelector(`[onclick="editRating('${ratingId}')"]`).after(saveButton);
+        // Update in the Firebase database
+        firebase.database().ref("users/" + auth.currentUser.uid + "/ratings/" + ratingId).update({
+            beerName: updatedBeerName,
+            location: updatedLocation,
+            occasion: updatedOccasion,
+            comments: updatedComments,
+            rating: selectedRating
+        }).then(() => {
+            alert("Rating updated successfully!");
+            loadRatings(auth.currentUser.uid);  // Reload the ratings list
+        });
+    };
 }
+
+
 
 
 function saveEditedRating(ratingId, newRating) {
