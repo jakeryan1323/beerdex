@@ -225,8 +225,21 @@
     ratingsList.innerHTML = "";
 
     database.ref("users/" + userId + "/ratings").once("value", snapshot => {
+        let ratingsArray = [];
+
         snapshot.forEach(childSnapshot => {
             const ratingData = childSnapshot.val();
+            ratingData.id = childSnapshot.key; // Store the ID for editing/deleting
+            ratingsArray.push(ratingData);
+        });
+
+        // Sort by date (most recent first)
+        ratingsArray.sort((a, b) => {
+            return new Date(b.date) - new Date(a.date); // Sort in descending order
+        });
+
+        // Display the ratings (5 most recent by default)
+        ratingsArray.slice(0, 5).forEach(ratingData => {
             const ratingDiv = document.createElement("div");
             ratingDiv.className = "rating-container";
 
@@ -236,21 +249,28 @@
             updateStars(starContainer, ratingData.rating);
 
             ratingDiv.innerHTML = `
-            <button class="edit-btn" onclick="editRating('${childSnapshot.key}')">📝</button>
-            <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
-            <br><p><strong>Beer Name:</strong> <span id="beer-${childSnapshot.key}">${ratingData.beerName}</span></p>
-            <p><strong>Date:</strong> <span id="date-${childSnapshot.key}">${ratingData.date}</span></p> <!-- Display the date -->
-            <div id="stars-${childSnapshot.key}" class="stars"></div>
-            <p><strong>Location:</strong> <span id="location-${childSnapshot.key}">${ratingData.location}</span></p>
-            <p><strong>Occasion:</strong> <span id="occasion-${childSnapshot.key}">${ratingData.occasion}</span></p>
-            <p><strong>Comments:</strong> <span id="comments-${childSnapshot.key}">${ratingData.comments}</span></p>
-        `;
-
+                <button class="edit-btn" onclick="editRating('${ratingData.id}')">📝</button>
+                <button class="delete-btn" onclick="deleteRating('${ratingData.id}')">X</button>
+                <br><p><strong>Beer Name:</strong> <span id="beer-${ratingData.id}">${ratingData.beerName}</span></p>
+                <p><strong>Date:</strong> <span id="date-${ratingData.id}">${ratingData.date}</span></p> <!-- Display the date -->
+                <div id="stars-${ratingData.id}" class="stars"></div>
+                <p><strong>Location:</strong> <span id="location-${ratingData.id}">${ratingData.location}</span></p>
+                <p><strong>Occasion:</strong> <span id="occasion-${ratingData.id}">${ratingData.occasion}</span></p>
+                <p><strong>Comments:</strong> <span id="comments-${ratingData.id}">${ratingData.comments}</span></p>
+            `;
             ratingDiv.appendChild(starContainer);
             ratingsList.appendChild(ratingDiv);
         });
+
+        // Hide the "Show More" button if less than 5 ratings
+        if (ratingsArray.length > 5) {
+            document.getElementById("showMoreBtn").classList.remove("hidden");
+        } else {
+            document.getElementById("showMoreBtn").classList.add("hidden");
+        }
     });
 }
+
 
 
         auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
@@ -277,6 +297,9 @@
     commentsSpan.innerHTML = `<input type="text" id="edit-comments-${ratingId}" value="${currentComments}">`;
     dateSpan.innerHTML = `<input type="text" id="edit-date-${ratingId}" value="${currentDate}">`;
 
+    // Set current rating on the stars container for edit
+    starsContainer.dataset.rating = parseFloat(starsContainer.children[0].dataset.value); // Set the initial rating
+
     // Replace stars with an interactive rating selector
     let newRating = parseFloat(starsContainer.dataset.rating); // Get current rating
     starsContainer.innerHTML = "";
@@ -295,6 +318,7 @@
     // Append Save button next to Edit button
     document.querySelector(`[onclick="editRating('${ratingId}')"]`).after(saveButton);
 }
+
 
 
 function saveEditedRating(ratingId, newRating) {
