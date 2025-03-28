@@ -27,6 +27,15 @@
         .friend-container {
             margin-bottom: 20px;
         }
+        .stars {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 5px;
+        }
+        .star {
+            width: 20px;
+            height: 20px;
+        }
     </style>
 </head>
 <body>
@@ -75,7 +84,7 @@
                 }
 
                 snapshot.forEach(friendSnapshot => {
-                    const friendId = friendSnapshot.key; // FIX: Get the key as the friend's UID
+                    const friendId = friendSnapshot.key;
 
                     if (!friendId || typeof friendId !== "string") {
                         console.error(`Invalid friend ID: ${friendId}`);
@@ -113,12 +122,16 @@
                                     const ratingDiv = document.createElement("div");
                                     ratingDiv.className = "rating-container";
                                     ratingDiv.innerHTML = `
-                                        <p><strong>${rating.beerName}</strong> - ${rating.rating}/5</p>
+                                        <p><strong>${rating.beerName}</strong></p>
+                                        <div class="stars" id="stars-${ratingSnap.key}"></div>
                                         <p><strong>Location:</strong> ${rating.location}</p>
                                         <p><strong>Occasion:</strong> ${rating.occasion}</p>
                                         <p><strong>Comments:</strong> ${rating.comments}</p>
                                     `;
                                     friendContainer.appendChild(ratingDiv);
+
+                                    // Render stars inside the rating container
+                                    createStars(document.getElementById(`stars-${ratingSnap.key}`), rating.rating);
                                 });
                             }
                             // Append each friend's ratings under their name
@@ -127,6 +140,22 @@
                     });
                 });
             });
+        }
+
+        function createStars(container, rating) {
+            container.innerHTML = ""; // Clear any existing stars
+            for (let i = 1; i <= 5; i++) {
+                const starImg = document.createElement("img");
+                if (rating >= i) {
+                    starImg.src = "full.jpg"; // Full star
+                } else if (rating >= i - 0.5) {
+                    starImg.src = "half.jpg"; // Half star
+                } else {
+                    starImg.src = "empty.jpg"; // Empty star
+                }
+                starImg.className = "star";
+                container.appendChild(starImg);
+            }
         }
 
         auth.onAuthStateChanged(user => {
