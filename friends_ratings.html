@@ -142,11 +142,11 @@
             for (let i = 1; i <= 5; i++) {
                 const starImg = document.createElement("img");
                 if (rating >= i) {
-                    starImg.src = "full_star.png"; // Full star
+                    starImg.src = "full.jpg"; // Full star
                 } else if (rating >= i - 0.5) {
-                    starImg.src = "half_star.png"; // Half star
+                    starImg.src = "half.jpg"; // Half star
                 } else {
-                    starImg.src = "empty_star.png"; // Empty star
+                    starImg.src = "empty.jpg"; // Empty star
                 }
                 starImg.className = "star";
                 container.appendChild(starImg);
