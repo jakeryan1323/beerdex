@@ -26,6 +26,17 @@
             text-align: left;
             position: relative;
         }
+        .stars {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .star {
+            width: 30px;
+            height: 30px;
+        }
         .delete-btn {
             position: absolute;
             top: 0px;
@@ -56,7 +67,6 @@
         <input type="text" id="username" placeholder="Username (Optional)">
         <button onclick="signUp()">Sign Up</button>
         <button onclick="login()">Login</button>
-
     </div>
 
     <div id="ratingForm" class="hidden">
@@ -65,18 +75,11 @@
         <p><a href="add_friend.html">Add a Friend</a></p>
         
         <input type="text" id="beerName" placeholder="Beer Name">
+        
         <label for="rating">Rating:</label>
-        <select id="rating">
-            <option value="5.0">5.0</option>
-            <option value="4.5">4.5</option>
-            <option value="4.0">4.0</option>
-            <option value="3.5">3.5</option>
-            <option value="3.0">3.0</option>
-            <option value="2.5">2.5</option>
-            <option value="2.0">2.0</option>
-            <option value="1.5">1.5</option>
-            <option value="1.0">1.0</option>
-        </select>
+        <div class="stars" id="ratingStars">
+            <!-- Star images added dynamically -->
+        </div>
 
         <input type="text" id="location" placeholder="Location (e.g., Bar XYZ)">
         <input type="text" id="occasion" placeholder="Occasion (e.g., Birthday Party)">
@@ -111,73 +114,62 @@
         const auth = firebase.auth();
         const database = firebase.database();
 
-        function signUp() {
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-            const username = document.getElementById("username").value;
+        let selectedRating = 0;
 
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    const user = userCredential.user;
+        function createRatingStars(container, callback) {
+            container.innerHTML = "";
+            for (let i = 1; i <= 5; i++) {
+                const star = document.createElement("img");
+                star.src = "star-empty.png"; // Default empty star
+                star.className = "star";
+                star.dataset.value = i;
+                star.dataset.half = "false";
 
-                    // Store email and username in the Realtime Database
-                    firebase.database().ref("users/" + user.uid).set({
-                        email: user.email,
-                        username: username || "Anonymous"  // Use 'Anonymous' if no username is provided
-                    }).then(() => {
-                        alert("Account created! Please log in.");
-                    }).catch(error => {
-                        alert("Error saving user data: " + error.message);
-                    });
-                })
-                .catch(error => alert(error.message));
+                star.onclick = function () {
+                    callback(i);
+                };
+
+                star.ondblclick = function () {
+                    callback(i - 0.5);
+                };
+
+                container.appendChild(star);
+            }
         }
 
-        function login() {
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-
-            auth.signInWithEmailAndPassword(email, password)
-                .then(userCredential => showRatingForm(userCredential.user))
-                .catch(error => alert(error.message));
+        function updateStars(container, rating) {
+            const stars = container.children;
+            for (let i = 0; i < stars.length; i++) {
+                let starValue = parseFloat(stars[i].dataset.value);
+                if (starValue <= rating) {
+                    stars[i].src = "full.jpg"; // Full star
+                } else if (starValue - 0.5 === rating) {
+                    stars[i].src = "half.jpg"; // Half star
+                } else {
+                    stars[i].src = "empty.jpg"; // Empty star
+                }
+            }
         }
 
-        function logout() {
-            auth.signOut().then(() => {
-                document.getElementById("authForm").classList.remove("hidden");
-                document.getElementById("ratingForm").classList.add("hidden");
-            });
-        }
-
-        function showRatingForm(user) {
-            // Get the username and display it
-            firebase.database().ref("users/" + user.uid).once("value")
-                .then(snapshot => {
-                    const userData = snapshot.val();
-                    const username = userData.username;
-                    document.getElementById("userDisplay").innerText = username; // Show the username instead of email
-                });
-
-            document.getElementById("authForm").classList.add("hidden");
-            document.getElementById("ratingForm").classList.remove("hidden");
-            loadRatings(user.uid);
-        }
+        createRatingStars(document.getElementById("ratingStars"), function (rating) {
+            selectedRating = rating;
+            updateStars(document.getElementById("ratingStars"), rating);
+        });
 
         function submitRating() {
             const beerName = document.getElementById("beerName").value.trim();
-            const rating = parseFloat(document.getElementById("rating").value);
             const location = document.getElementById("location").value.trim();
             const occasion = document.getElementById("occasion").value.trim();
             const comments = document.getElementById("comments").value.trim();
             const user = auth.currentUser;
 
-            if (!beerName || isNaN(rating)) {
+            if (!beerName || selectedRating === 0) {
                 alert("Please enter a beer name and select a rating.");
                 return;
             }
 
             database.ref("users/" + user.uid + "/ratings").push({
-                beerName, rating, location, occasion, comments
+                beerName, rating: selectedRating, location, occasion, comments
             }).then(() => {
                 document.getElementById("beerName").value = "";
                 document.getElementById("location").value = "";
@@ -187,74 +179,47 @@
             });
         }
 
+        function showRatingForm(user) {
+            firebase.database().ref("users/" + user.uid).once("value")
+                .then(snapshot => {
+                    const userData = snapshot.val();
+                    document.getElementById("userDisplay").innerText = userData.username;
+                });
+
+            document.getElementById("authForm").classList.add("hidden");
+            document.getElementById("ratingForm").classList.remove("hidden");
+            loadRatings(user.uid);
+        }
+
         function loadRatings(userId) {
             const ratingsList = document.getElementById("ratingsList");
             ratingsList.innerHTML = "";
-            const showMoreBtn = document.getElementById("showMoreBtn");
-            let allRatings = [];
 
             database.ref("users/" + userId + "/ratings").once("value", snapshot => {
                 snapshot.forEach(childSnapshot => {
-                    allRatings.push({ id: childSnapshot.key, ...childSnapshot.val() });
+                    const ratingData = childSnapshot.val();
+                    const ratingDiv = document.createElement("div");
+                    ratingDiv.className = "rating-container";
+
+                    const starContainer = document.createElement("div");
+                    starContainer.className = "stars";
+                    createRatingStars(starContainer, () => {});
+                    updateStars(starContainer, ratingData.rating);
+
+                    ratingDiv.innerHTML = `
+                        <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
+                        <p><strong>${ratingData.beerName}</strong></p>
+                        <p><strong>Location:</strong> ${ratingData.location}</p>
+                        <p><strong>Occasion:</strong> ${ratingData.occasion}</p>
+                        <p><strong>Comments:</strong> ${ratingData.comments}</p>
+                    `;
+                    ratingDiv.appendChild(starContainer);
+                    ratingsList.appendChild(ratingDiv);
                 });
-
-                allRatings.sort((a, b) => b.rating - a.rating);
-                displayRatings(allRatings.slice(0, 5)); 
-                showMoreBtn.classList.toggle("hidden", allRatings.length <= 5);
             });
-        }
-
-        function displayRatings(ratings) {
-            const ratingsList = document.getElementById("ratingsList");
-            ratingsList.innerHTML = "";
-            ratings.forEach(r => {
-                const div = document.createElement("div");
-                div.className = "rating-container";
-                div.innerHTML = `
-                    <button class="delete-btn" onclick="deleteRating('${r.id}')">X</button>
-                    <p><strong>${r.beerName}</strong> - ${r.rating}/5</p>
-                    <p><strong>Location:</strong> ${r.location}</p>
-                    <p><strong>Occasion:</strong> ${r.occasion}</p>
-                    <p><strong>Comments:</strong> ${r.comments}</p>
-                `;
-                ratingsList.appendChild(div);
-            });
-        }
-
-        function showAllRatings() {
-            const user = auth.currentUser;
-            if (user) {
-                database.ref("users/" + user.uid + "/ratings").once("value", snapshot => {
-                    let allRatings = [];
-                    snapshot.forEach(childSnapshot => {
-                        allRatings.push({ id: childSnapshot.key, ...childSnapshot.val() });
-                    });
-
-                    allRatings.sort((a, b) => b.rating - a.rating);
-                    displayRatings(allRatings);
-                    document.getElementById("showMoreBtn").classList.add("hidden");
-                });
-            }
         }
 
         auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
-
-        // Function to delete a rating from Firebase
-        function deleteRating(ratingId) {
-            const user = auth.currentUser;
-            
-            if (user) {
-                // Remove the rating from Firebase
-                database.ref("users/" + user.uid + "/ratings/" + ratingId).remove()
-                    .then(() => {
-                        // Reload ratings after deletion
-                        loadRatings(user.uid);
-                    })
-                    .catch(error => {
-                        alert("Error deleting rating: " + error.message);
-                    });
-            }
-        }
     </script>
 </body>
 </html>
