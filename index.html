@@ -109,6 +109,7 @@
         <button onclick="submitRating()">Submit</button>
         
         <h3>Your Ratings:</h3>
+        <button id="sortBtn" onclick="toggleSort()">Sort by Highest Rating</button>
         <div id="ratingsList"></div>
         <button id="showMoreBtn" class="hidden" onclick="showAllRatings()">Show More</button>
         <button onclick="window.location.href='friends_ratings.html'">View Friends' Ratings</button>
@@ -220,36 +221,61 @@
             loadRatings(user.uid);
         }
 
-        function loadRatings(userId) {
+        let sortOption = "date"; // Default sorting method
+
+function loadRatings(userId) {
     const ratingsList = document.getElementById("ratingsList");
     ratingsList.innerHTML = "";
 
     database.ref("users/" + userId + "/ratings").once("value", snapshot => {
+        let ratingsArray = [];
+
         snapshot.forEach(childSnapshot => {
-            const ratingData = childSnapshot.val();
+            let ratingData = childSnapshot.val();
+            ratingData.id = childSnapshot.key; // Store the ID for editing/deleting
+            ratingsArray.push(ratingData);
+        });
+
+        // SORT LOGIC
+        if (sortOption === "rating") {
+            ratingsArray.sort((a, b) => b.rating - a.rating); // Highest to lowest rating
+        } else if (sortOption === "date") {
+            ratingsArray.sort((a, b) => new Date(b.date) - new Date(a.date)); // Most recent first
+        }
+
+        // DISPLAY RATINGS
+        ratingsArray.forEach(ratingData => {
             const ratingDiv = document.createElement("div");
             ratingDiv.className = "rating-container";
-
             const starContainer = document.createElement("div");
             starContainer.className = "stars";
-            createRatingStars(starContainer, () => {});
+            createRatingStars(starContainer, () => {}); 
             updateStars(starContainer, ratingData.rating);
 
             ratingDiv.innerHTML = `
-            <button class="edit-btn" onclick="editRating('${childSnapshot.key}')">📝</button>
-            <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
-            <br><p><strong>Beer Name:</strong> <span id="beer-${childSnapshot.key}">${ratingData.beerName}</span></p>
-            <p><strong>Date:</strong> <span id="date-${childSnapshot.key}">${ratingData.date}</span></p> <!-- Display the date -->
-            <div id="stars-${childSnapshot.key}" class="stars"></div>
-            <p><strong>Location:</strong> <span id="location-${childSnapshot.key}">${ratingData.location}</span></p>
-            <p><strong>Occasion:</strong> <span id="occasion-${childSnapshot.key}">${ratingData.occasion}</span></p>
-            <p><strong>Comments:</strong> <span id="comments-${childSnapshot.key}">${ratingData.comments}</span></p>
-        `;
-
+                <button class="delete-btn" onclick="deleteRating('${ratingData.id}')">X</button>
+                <button class="edit-btn" onclick="editRating('${ratingData.id}')">✏️</button>
+                <p><strong id="beer-${ratingData.id}">${ratingData.beerName}</strong></p>
+                <p><strong>Location:</strong> <span id="location-${ratingData.id}">${ratingData.location}</span></p>
+                <p><strong>Occasion:</strong> <span id="occasion-${ratingData.id}">${ratingData.occasion}</span></p>
+                <p><strong>Comments:</strong> <span id="comments-${ratingData.id}">${ratingData.comments}</span></p>
+                <p><strong>Date:</strong> <span id="date-${ratingData.id}">${ratingData.date}</span></p>
+            `;
             ratingDiv.appendChild(starContainer);
             ratingsList.appendChild(ratingDiv);
         });
     });
+}
+
+function toggleSort() {
+    if (sortOption === "date") {
+        sortOption = "rating";
+        document.getElementById("sortBtn").innerText = "Sort by Most Recent";
+    } else {
+        sortOption = "date";
+        document.getElementById("sortBtn").innerText = "Sort by Highest Rating";
+    }
+    loadRatings(auth.currentUser.uid); // Reload ratings with new sort order
 }
 
 
