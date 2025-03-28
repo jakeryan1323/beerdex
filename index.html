@@ -238,7 +238,8 @@
             ratingDiv.innerHTML = `
             <button class="edit-btn" onclick="editRating('${childSnapshot.key}')">📝</button>
             <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
-            <p><strong>Beer Name:</strong> <span id="beer-${childSnapshot.key}">${ratingData.beerName}</span></p>
+            <br><p><strong>Beer Name:</strong> <span id="beer-${childSnapshot.key}">${ratingData.beerName}</span></p>
+            <p><strong>Date:</strong> <span id="date-${childSnapshot.key}">${ratingData.date}</span></p> <!-- Display the date -->
             <div id="stars-${childSnapshot.key}" class="stars"></div>
             <p><strong>Location:</strong> <span id="location-${childSnapshot.key}">${ratingData.location}</span></p>
             <p><strong>Occasion:</strong> <span id="occasion-${childSnapshot.key}">${ratingData.occasion}</span></p>
@@ -259,12 +260,14 @@
     const locationSpan = document.getElementById(`location-${ratingId}`);
     const occasionSpan = document.getElementById(`occasion-${ratingId}`);
     const commentsSpan = document.getElementById(`comments-${ratingId}`);
-    
+    const dateSpan = document.getElementById(`date-${ratingId}`);
+
     // Create input fields with current values
     beerSpan.innerHTML = `<input type="text" id="edit-beer-${ratingId}" value="${beerSpan.innerText}">`;
     locationSpan.innerHTML = `<input type="text" id="edit-location-${ratingId}" value="${locationSpan.innerText}">`;
     occasionSpan.innerHTML = `<input type="text" id="edit-occasion-${ratingId}" value="${occasionSpan.innerText}">`;
     commentsSpan.innerHTML = `<input type="text" id="edit-comments-${ratingId}" value="${commentsSpan.innerText}">`;
+    dateSpan.innerHTML = `<input type="text" id="edit-date-${ratingId}" value="${dateSpan.innerText}">`; // Editable date
 
     // Create a Save button
     const saveButton = document.createElement("button");
@@ -277,23 +280,27 @@
     document.querySelector(`[onclick="editRating('${ratingId}')"]`).after(saveButton);
 }
 
+
 function saveEditedRating(ratingId) {
     const user = auth.currentUser;
     const newBeerName = document.getElementById(`edit-beer-${ratingId}`).value;
     const newLocation = document.getElementById(`edit-location-${ratingId}`).value;
     const newOccasion = document.getElementById(`edit-occasion-${ratingId}`).value;
     const newComments = document.getElementById(`edit-comments-${ratingId}`).value;
+    const newDate = document.getElementById(`edit-date-${ratingId}`).value; // Get the new date
 
     database.ref(`users/${user.uid}/ratings/${ratingId}`).update({
         beerName: newBeerName,
         location: newLocation,
         occasion: newOccasion,
-        comments: newComments
+        comments: newComments,
+        date: newDate // Update the date
     }).then(() => {
         alert("Rating updated!");
         loadRatings(user.uid); // Reload ratings to show updated values
     });
 }
+
     </script>
 </body>
 </html>
