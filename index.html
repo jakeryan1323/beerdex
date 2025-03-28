@@ -80,7 +80,8 @@
         <div class="stars" id="ratingStars">
             <!-- Star images added dynamically -->
         </div>
-
+        <label for="ratingDate">Date:</label>
+        <input type="date" id="ratingDate">
         <input type="text" id="location" placeholder="Location (e.g., Bar XYZ)">
         <input type="text" id="occasion" placeholder="Occasion (e.g., Birthday Party)">
         <textarea id="comments" placeholder="Overall Comments"></textarea>
@@ -157,27 +158,35 @@
         });
 
         function submitRating() {
-            const beerName = document.getElementById("beerName").value.trim();
-            const location = document.getElementById("location").value.trim();
-            const occasion = document.getElementById("occasion").value.trim();
-            const comments = document.getElementById("comments").value.trim();
-            const user = auth.currentUser;
+    const beerName = document.getElementById("beerName").value.trim();
+    const location = document.getElementById("location").value.trim();
+    const occasion = document.getElementById("occasion").value.trim();
+    const comments = document.getElementById("comments").value.trim();
+    const ratingDate = document.getElementById("ratingDate").value || new Date().toISOString();
+    const user = auth.currentUser;
 
-            if (!beerName || selectedRating === 0) {
-                alert("Please enter a beer name and select a rating.");
-                return;
-            }
+    if (!beerName || selectedRating === 0) {
+        alert("Please enter a beer name and select a rating.");
+        return;
+    }
 
-            database.ref("users/" + user.uid + "/ratings").push({
-                beerName, rating: selectedRating, location, occasion, comments
-            }).then(() => {
-                document.getElementById("beerName").value = "";
-                document.getElementById("location").value = "";
-                document.getElementById("occasion").value = "";
-                document.getElementById("comments").value = "";
-                loadRatings(user.uid);
-            });
-        }
+    database.ref("users/" + user.uid + "/ratings").push({
+        beerName,
+        rating: selectedRating,
+        location,
+        occasion,
+        comments,
+        date: ratingDate
+    }).then(() => {
+        document.getElementById("beerName").value = "";
+        document.getElementById("location").value = "";
+        document.getElementById("occasion").value = "";
+        document.getElementById("comments").value = "";
+        document.getElementById("ratingDate").value = "";
+        loadRatings(user.uid);
+    });
+}
+
 
         function showRatingForm(user) {
             firebase.database().ref("users/" + user.uid).once("value")
@@ -192,32 +201,34 @@
         }
 
         function loadRatings(userId) {
-            const ratingsList = document.getElementById("ratingsList");
-            ratingsList.innerHTML = "";
+    const ratingsList = document.getElementById("ratingsList");
+    ratingsList.innerHTML = "";
 
-            database.ref("users/" + userId + "/ratings").once("value", snapshot => {
-                snapshot.forEach(childSnapshot => {
-                    const ratingData = childSnapshot.val();
-                    const ratingDiv = document.createElement("div");
-                    ratingDiv.className = "rating-container";
+    database.ref("users/" + userId + "/ratings").once("value", snapshot => {
+        snapshot.forEach(childSnapshot => {
+            const ratingData = childSnapshot.val();
+            const ratingDiv = document.createElement("div");
+            ratingDiv.className = "rating-container";
 
-                    const starContainer = document.createElement("div");
-                    starContainer.className = "stars";
-                    createRatingStars(starContainer, () => {});
-                    updateStars(starContainer, ratingData.rating);
+            const starContainer = document.createElement("div");
+            starContainer.className = "stars";
+            createRatingStars(starContainer, () => {});
+            updateStars(starContainer, ratingData.rating);
 
-                    ratingDiv.innerHTML = `
-                        <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
-                        <p><strong>${ratingData.beerName}</strong></p>
-                        <p><strong>Location:</strong> ${ratingData.location}</p>
-                        <p><strong>Occasion:</strong> ${ratingData.occasion}</p>
-                        <p><strong>Comments:</strong> ${ratingData.comments}</p>
-                    `;
-                    ratingDiv.appendChild(starContainer);
-                    ratingsList.appendChild(ratingDiv);
-                });
-            });
-        }
+            ratingDiv.innerHTML = `
+                <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
+                <p><strong>${ratingData.beerName}</strong></p>
+                <p><strong>Date:</strong> ${ratingData.date ? new Date(ratingData.date).toLocaleDateString() : "Unknown"}</p>
+                <p><strong>Location:</strong> ${ratingData.location}</p>
+                <p><strong>Occasion:</strong> ${ratingData.occasion}</p>
+                <p><strong>Comments:</strong> ${ratingData.comments}</p>
+            `;
+            ratingDiv.appendChild(starContainer);
+            ratingsList.appendChild(ratingDiv);
+        });
+    });
+}
+
 
         auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
     </script>
