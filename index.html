@@ -57,6 +57,20 @@
         .delete-btn:hover {
             color: darkred;
         }
+
+        .edit-btn {
+        position: absolute;
+        top: 0px;
+        left: 5px;
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 0; 
+}
+    .edit-btn:hover {
+        color: darkblue;
+}
     </style>
 </head>
 <body>
@@ -216,6 +230,7 @@
             updateStars(starContainer, ratingData.rating);
 
             ratingDiv.innerHTML = `
+                <button class="edit-btn" onclick="editRating('${childSnapshot.key}')">📝</button>
                 <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
                 <p><strong>${ratingData.beerName}</strong></p>
                 <p><strong>Date:</strong> ${ratingData.date ? new Date(ratingData.date).toLocaleDateString() : "Unknown"}</p>
@@ -231,6 +246,19 @@
 
 
         auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
+
+        function editRating(ratingId) {
+    const newComment = prompt("Edit your comment:");
+    if (newComment !== null) {
+        const user = auth.currentUser;
+        database.ref(`users/${user.uid}/ratings/${ratingId}`).update({
+            comments: newComment
+        }).then(() => {
+            alert("Comment updated!");
+            loadRatings(user.uid); // Reload ratings
+        });
+    }
+}
     </script>
 </body>
 </html>
