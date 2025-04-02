@@ -251,10 +251,10 @@
             <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
             <br><p><strong>Beer Name:</strong> <span id="beer-${childSnapshot.key}">${ratingData.beerName}</span></p>
             <p><strong>Date:</strong> <span id="date-${childSnapshot.key}">${ratingData.date}</span></p> <!-- Display the date -->
-            <div id="stars-${childSnapshot.key}" class="stars"></div>
             <p><strong>Location:</strong> <span id="location-${childSnapshot.key}">${ratingData.location}</span></p>
             <p><strong>Occasion:</strong> <span id="occasion-${childSnapshot.key}">${ratingData.occasion}</span></p>
             <p><strong>Comments:</strong> <span id="comments-${childSnapshot.key}">${ratingData.comments}</span></p>
+            <div id="stars-${childSnapshot.key}" class="stars"></div>
         `;
 
             ratingDiv.appendChild(starContainer);
