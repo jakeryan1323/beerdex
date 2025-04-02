@@ -80,17 +80,15 @@
 }
 
 input[type="date"] {
-    appearance: none; /* Removes default styles on some browsers */
-    -webkit-appearance: none; /* Removes iOS default styling */
-    -moz-appearance: none; /* Removes Firefox default styling */
     width: 100%;
     padding: 8px;
     font-size: 16px;
     border: 1px solid #ccc;
     border-radius: 5px;
     background-color: white;
-    text-align: center;
+    text-align: left;
 }
+
     </style>
 </head>
 <body>
@@ -114,7 +112,6 @@ input[type="date"] {
         <div class="stars" id="ratingStars">
             <!-- Star images added dynamically -->
         </div>
-        <label for="ratingDate">Date:</label>
         <input type="date" id="ratingDate">
         <input type="text" id="location" placeholder="Location (e.g., Bar XYZ)">
         <input type="text" id="occasion" placeholder="Occasion (e.g., Birthday Party)">
