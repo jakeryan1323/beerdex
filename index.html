@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Beer Rating App</title>
+    <link rel="icon" &#127866>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -245,19 +246,7 @@
             createRatingStars(starContainer, () => {});
             updateStars(starContainer, ratingData.rating);
 
-            ratingDiv.innerHTML = `
-            <button class="edit-btn" onclick="editRating('${childSnapshot.key}')">📝</button>
-            <button class="delete-btn" onclick="deleteRating('${childSnapshot.key}')">X</button>
-            <br><p><strong>Beer Name:</strong> <span id="beer-${childSnapshot.key}">${ratingData.beerName}</span></p>
-            <p><strong>Date:</strong> <span id="date-${childSnapshot.key}">${ratingData.date}</span></p> <!-- Display the date -->
-            <div id="stars-${childSnapshot.key}" class="stars"></div>
-            <p><strong>Location:</strong> <span id="location-${childSnapshot.key}">${ratingData.location}</span></p>
-            <p><strong>Occasion:</strong> <span id="occasion-${childSnapshot.key}">${ratingData.occasion}</span></p>
-            <p><strong>Comments:</strong> <span id="comments-${childSnapshot.key}">${ratingData.comments}</span></p>
-        `;
-
-            ratingDiv.appendChild(starContainer);
-            ratingsList.appendChild(ratingDiv);
+            
         });
         window.ratingsData = ratings;
 
