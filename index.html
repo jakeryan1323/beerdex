@@ -391,6 +391,26 @@ function displayRatings(ratings) {
     });
 }
 
+function deleteRating(ratingId) {
+    const user = auth.currentUser;
+    if (!user) {
+        alert("You must be logged in to delete ratings.");
+        return;
+    }
+
+    const confirmation = confirm("Are you sure you want to delete this rating?");
+    if (!confirmation) return;
+
+    database.ref(`users/${user.uid}/ratings/${ratingId}`).remove()
+        .then(() => {
+            alert("Rating deleted!");
+            loadRatings(user.uid); // Reload ratings to update the list
+        })
+        .catch(error => {
+            console.error("Error deleting rating:", error);
+            alert("Failed to delete rating. Try again.");
+        });
+}
 
     </script>
 </body>
