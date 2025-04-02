@@ -109,6 +109,13 @@
         <button onclick="submitRating()">Submit</button>
         
         <h3>Your Ratings:</h3>
+        <label for="sortRatings">Sort By:</label>
+        <select id="sortRatings" onchange="sortRatings()">
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="rating-desc">Highest Rating First</option>
+            <option value="rating-asc">Lowest Rating First</option>
+        </select>
         <div id="ratingsList"></div>
         <button id="showMoreBtn" class="hidden" onclick="showAllRatings()">Show More</button>
         <button onclick="window.location.href='friends_ratings.html'">View Friends' Ratings</button>
@@ -225,8 +232,11 @@
     ratingsList.innerHTML = "";
 
     database.ref("users/" + userId + "/ratings").once("value", snapshot => {
+        let ratings = [];
         snapshot.forEach(childSnapshot => {
-            const ratingData = childSnapshot.val();
+            let ratingData = childSnapshot.val();
+            ratingData.id = childSnapshot.key; // Store rating ID for editing
+            ratings.push(ratingData);
             const ratingDiv = document.createElement("div");
             ratingDiv.className = "rating-container";
 
@@ -249,6 +259,9 @@
             ratingDiv.appendChild(starContainer);
             ratingsList.appendChild(ratingDiv);
         });
+        window.ratingsData = ratings;
+
+        sortRatings(); // Sort and display the ratings based on the selected option
     });
 }
 
@@ -315,6 +328,56 @@ function saveEditedRating(ratingId, newRating) {
     }).then(() => {
         alert("Rating updated!");
         loadRatings(user.uid); // Reload the ratings to show the updated values
+    });
+}
+
+function sortRatings() {
+    if (!window.ratingsData) return; // Ensure ratings are loaded
+
+    const sortBy = document.getElementById("sortRatings").value;
+    let sortedRatings = [...window.ratingsData]; // Clone the array to avoid modifying the original order
+
+    // Sorting logic
+    if (sortBy === "date-desc") {
+        sortedRatings.sort((a, b) => new Date(b.date) - new Date(a.date)); // Newest first
+    } else if (sortBy === "date-asc") {
+        sortedRatings.sort((a, b) => new Date(a.date) - new Date(b.date)); // Oldest first
+    } else if (sortBy === "rating-desc") {
+        sortedRatings.sort((a, b) => b.rating - a.rating); // Highest rating first
+    } else if (sortBy === "rating-asc") {
+        sortedRatings.sort((a, b) => a.rating - b.rating); // Lowest rating first
+    }
+
+    displayRatings(sortedRatings);
+}
+
+function displayRatings(ratings) {
+    const ratingsList = document.getElementById("ratingsList");
+    ratingsList.innerHTML = ""; // Clear the list before re-rendering
+
+    ratings.forEach(ratingData => {
+        const ratingDiv = document.createElement("div");
+        ratingDiv.className = "rating-container";
+
+        const starContainer = document.createElement("div");
+        starContainer.className = "stars";
+        createRatingStars(starContainer, () => {}); // Keep stars non-interactive
+        updateStars(starContainer, ratingData.rating);
+
+        ratingDiv.innerHTML = `
+            <button class="edit-btn" onclick="editRating('${ratingData.id}')">📝</button>
+            <button class="delete-btn" onclick="deleteRating('${ratingData.id}')">X</button>
+            <br><p><strong>Beer Name:</strong> <span id="beer-${ratingData.id}">${ratingData.beerName}</span></p>
+            <p><strong>Date:</strong> <span id="date-${ratingData.id}">${ratingData.date}</span></p>
+            <div id="stars-${ratingData.id}" class="stars"></div>
+            <p><strong>Rating:</strong> ${ratingData.rating} ⭐</p>
+            <p><strong>Location:</strong> <span id="location-${ratingData.id}">${ratingData.location}</span></p>
+            <p><strong>Occasion:</strong> <span id="occasion-${ratingData.id}">${ratingData.occasion}</span></p>
+            <p><strong>Comments:</strong> <span id="comments-${ratingData.id}">${ratingData.comments}</span></p>
+        `;
+
+        ratingDiv.appendChild(starContainer);
+        ratingsList.appendChild(ratingDiv);
     });
 }
 
