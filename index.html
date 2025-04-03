@@ -27,18 +27,23 @@
             text-align: left;
             position: relative;
         }
+        .beers {
+            display: flex;
+            justify-content: center;
+            cursor: pointer;
+            width: max-content;
+            transform: translateX(-50%);
+            left: 50%;
+            position: absolute;
+
+        }
+
         .stars {
             display: flex;
             justify-content: center;
             gap: 5px;
             cursor: pointer;
             margin-bottom: 10px;
-            margin-top: 10px;
-            width: max-content;
-            transform: translateX(-50%);
-            left: 50%;
-            position: absolute;
-
         }
         .star {
             width: 20px;
@@ -129,13 +134,13 @@
         <input type="text" id="beerName" placeholder="Beer Name">
         <div class="rate">
         <label for="rating">Rating:</label>
-        <div class="stars" id="ratingStars">
+        <div class="beers"><div class="stars" id="ratingStars">
             <!-- Star images added dynamically -->
         </div></div>
         <div class="date-container">
             <label for="ratingDate">Date:</label>
             <input type="date" id="ratingDate">
-        </div>
+        </div></div>
         <input type="text" id="location" placeholder="Location (e.g., Bar XYZ)">
         <input type="text" id="occasion" placeholder="Occasion (e.g., Birthday Party)">
         <textarea id="comments" placeholder="Overall Comments"></textarea>
