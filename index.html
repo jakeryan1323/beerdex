@@ -89,8 +89,24 @@ input[type="date"] {
     text-align: left;
 }
 
+#profilePicSmall {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #ccc;
+        vertical-align: middle;
+        margin-right: 10px;
+    }
+
     </style>
 </head>
+<header>
+    <a href="profile.html">
+        <img id="profilePicSmall" src="default-profile.png" alt="Profile Picture">
+        View My Profile
+    </a>
+</header>
 <body>
     <div id="authForm">
         <h2>Login / Sign Up</h2>
@@ -412,6 +428,18 @@ function deleteRating(ratingId) {
             alert("Failed to delete rating. Try again.");
         });
 }
+
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            database.ref("users/" + user.uid).once("value").then(snapshot => {
+                const userData = snapshot.val();
+                if (userData.profilePic) {
+                    document.getElementById("profilePicSmall").src = userData.profilePic;
+                }
+            });
+        }
+    });
 
     </script>
 </body>

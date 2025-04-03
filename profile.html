@@ -25,6 +25,14 @@
             margin-bottom: 10px;
             text-align: left;
         }
+        #profilePic {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ccc;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -32,19 +40,25 @@
     <h2>My Profile</h2>
     <p><strong>Email:</strong> <span id="emailDisplay"></span></p>
 
+    <h3>Profile Picture</h3>
+    <img id="profilePic" src="default-profile.png" alt="Profile Picture">
+    <input type="file" id="profilePicInput" accept="image/*">
+    <button onclick="uploadProfilePic()">Upload New Picture</button>
+
     <h3>Username</h3>
     <input type="text" id="newUsername" placeholder="Enter new username">
     <button onclick="updateUsername()">Update Username</button>
 
     <h3>Stats</h3>
     <p><strong>Total Ratings:</strong> <span id="totalRatings">0</span></p>
-    <p><strong>Highest Rated Beer:</strong> <span id="topBeer">N/A</span> (<span id="topRating">0</span>★)</p>
+    <p><strong>Highest Rated Beer:</strong> <span id="topBeer">N/A</span> (<span id="topRating">0</span>&#127866)</p>
 
     <button onclick="window.location.href='index.html'">Back to Ratings</button>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -60,6 +74,7 @@
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const database = firebase.database();
+        const storage = firebase.storage();
 
         auth.onAuthStateChanged(user => {
             if (user) {
@@ -76,6 +91,9 @@
                 if (userData.username) {
                     document.getElementById("newUsername").value = userData.username;
                 }
+                if (userData.profilePic) {
+                    document.getElementById("profilePic").src = userData.profilePic;
+                }
                 loadUserStats(userId);
             });
         }
@@ -88,6 +106,27 @@
                     alert("Username updated!");
                 });
             }
+        }
+
+        function uploadProfilePic() {
+            const user = auth.currentUser;
+            const fileInput = document.getElementById("profilePicInput");
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please select an image first.");
+                return;
+            }
+
+            const storageRef = storage.ref("profile_pics/" + user.uid);
+            storageRef.put(file).then(snapshot => {
+                snapshot.ref.getDownloadURL().then(url => {
+                    database.ref("users/" + user.uid).update({ profilePic: url }).then(() => {
+                        document.getElementById("profilePic").src = url;
+                        alert("Profile picture updated!");
+                    });
+                });
+            });
         }
 
         function loadUserStats(userId) {
