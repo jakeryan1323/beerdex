@@ -25,26 +25,13 @@
             margin-bottom: 10px;
             text-align: left;
         }
-        #profilePic {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #ccc;
-            margin-bottom: 10px;
-        }
+
     </style>
 </head>
 <body>
 
     <h2>My Profile</h2>
     <p><strong>Email:</strong> <span id="emailDisplay"></span></p>
-
-    <h3>Profile Picture</h3>
-    <img id="profilePic" src="default-profile.png" alt="Profile Picture">
-    <input type="file" id="profilePicInput" accept="image/*">
-    <button onclick="uploadProfilePic()">Upload New Picture</button>
-    <p id="uploadStatus"></p>
 
     <h3>Username</h3>
     <input type="text" id="newUsername" placeholder="Enter new username">
@@ -92,9 +79,6 @@
                 if (userData.username) {
                     document.getElementById("newUsername").value = userData.username;
                 }
-                if (userData.profilePic) {
-                    document.getElementById("profilePic").src = userData.profilePic;
-                }
                 loadUserStats(userId);
             });
         }
@@ -109,50 +93,7 @@
             }
         }
 
-        function uploadProfilePic() {
-        const user = auth.currentUser;
-        const fileInput = document.getElementById("profilePicInput");
-        if (fileInput.files.length === 0) {
-            alert("Please select a file.");
-            return;
-        }
-
-        const file = fileInput.files[0];
-        const storageRef = storage.ref("profile_pictures/" + user.uid);
-        const uploadTask = storageRef.put(file);
-
-        uploadTask.on(
-            "state_changed",
-            snapshot => {
-                let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                document.getElementById("uploadStatus").innerText = "Uploading: " + Math.round(progress) + "%";
-            },
-            error => {
-                console.error("Upload error:", error);
-                alert("Failed to upload image.");
-            },
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
-                    database.ref("users/" + user.uid).update({ profilePic: downloadURL }).then(() => {
-                        document.getElementById("profilePic").src = downloadURL;
-                        document.getElementById("profilePicSmall").src = downloadURL; // Update main page pic
-                        alert("Profile picture updated!");
-                    });
-                });
-            }
-        );
-    }
-
-
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            database.ref("users/" + user.uid).once("value").then(snapshot => {
-                const userData = snapshot.val();
-                if (userData.profilePic) {
-                    document.getElementById("profilePic").src = userData.profilePic;
-                }
-            });
-        }
+        
 
         function loadUserStats(userId) {
             database.ref("users/" + userId + "/ratings").once("value").then(snapshot => {
@@ -174,8 +115,6 @@
                 document.getElementById("topRating").innerText = topRating;
             });
         }
-
-    });
 
     </script>
 
