@@ -114,7 +114,8 @@ input[type="date"] {
         <div class="stars" id="ratingStars">
             <!-- Star images added dynamically -->
         </div>
-        <label for="ratingDate">Date:</label><input type="date" id="ratingDate">
+        <label for="ratingDate">Date:</label>
+        <input type="date" id="ratingDate" onfocus="this.showPicker()" placeholder="mm/dd/yyyy">
         <input type="text" id="location" placeholder="Location (e.g., Bar XYZ)">
         <input type="text" id="occasion" placeholder="Occasion (e.g., Birthday Party)">
         <textarea id="comments" placeholder="Overall Comments"></textarea>
