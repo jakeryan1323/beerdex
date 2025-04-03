@@ -33,7 +33,9 @@
             gap: 5px;
             cursor: pointer;
             margin-bottom: 10px;
-            width: 100%;
+            width: max-content;
+            left: 50%;
+            transform: translateX(-50%);
 
         }
         .star {
@@ -96,15 +98,10 @@
 }
 
 .rate {
-  display: grid;
+  display: flex;
   align-items: center; /* Ensures the label and input are vertically aligned */
-  justify-content: center;
+  position: relative;
   width: 100%;
-  grid-template-columns: auto 1fr;
-}
-
-.rate label{
-    margin-right: auto;
 }
 
     </style>
