@@ -100,6 +100,7 @@
                 let totalRatings = 0;
                 let topRating = 0;
                 let topBeer = "N/A";
+                let topOccasion = "N/A";
 
                 snapshot.forEach(childSnapshot => {
                     totalRatings++;
@@ -107,12 +108,14 @@
                     if (ratingData.rating > topRating) {
                         topRating = ratingData.rating;
                         topBeer = ratingData.beerName;
+                        topOccasion = ratingData.occasion;
                     }
                 });
 
                 document.getElementById("totalRatings").innerText = totalRatings;
                 document.getElementById("topBeer").innerText = topBeer;
                 document.getElementById("topRating").innerText = topRating;
+                document.getElementById("topOccasion").innerText = topOccasion;
             });
         }
 
