@@ -124,50 +124,44 @@ function uploadProfilePic() {
     }
 
     const file = fileInput.files[0];
-    const reader = new FileReader();
+    const formData = new FormData();
+    formData.append("image", file);
 
-    reader.onloadend = function () {
-        const base64Image = reader.result.split(',')[1]; // Strip base64 header
+    statusEl.innerText = "Uploading...";
 
-        statusEl.innerText = "Uploading...";
+    fetch("https://api.imgur.com/3/image", {
+        method: "POST",
+        headers: {
+            Authorization: "Client-ID bfe2690a31799b2" // Your actual Imgur client ID
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Imgur upload failed.");
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            const imageUrl = data.data.link;
 
-        const imgurUrl = "https://cors-proxy.htmldriven.com/?url=https://api.imgur.com/3/image";
-        const clientId = "Client-ID bfe2690a31799b2"; // Replace with your Imgur Client ID
-
-        fetch("https://cors-anywhere.herokuapp.com/https://api.imgur.com/3/image", {
-            method: "POST",
-            headers: {
-                Authorization: "Client-ID bfe2690a31799b2", // Your Imgur Client ID
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                image: base64Image,
-                type: "base64"
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const imageUrl = data.data.link;
-
-                // Save to Firebase Database
-                database.ref("users/" + user.uid).update({ profilePic: imageUrl }).then(() => {
-                    document.getElementById("profilePic").src = imageUrl;
-                    statusEl.innerText = "Upload complete!";
-                });
-            } else {
-                statusEl.innerText = "Imgur upload failed.";
-                console.error(data);
-            }
-        })
-        .catch(error => {
-            statusEl.innerText = "Upload error.";
-            console.error(error);
-        });
-    };
-
-    reader.readAsDataURL(file);
+            // Save to Firebase
+            database.ref("users/" + user.uid).update({ profilePic: imageUrl }).then(() => {
+                document.getElementById("profilePic").src = imageUrl;
+                statusEl.innerText = "Upload complete!";
+            });
+        } else {
+            statusEl.innerText = "Upload failed.";
+            console.error("Imgur error response:", data);
+        }
+    })
+    .catch(error => {
+        statusEl.innerText = "Upload error.";
+        console.error("Upload error:", error);
+    });
 }
+
 
 
 
