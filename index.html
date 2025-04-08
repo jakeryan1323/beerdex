@@ -129,6 +129,7 @@
 
     <div id="ratingForm" class="hidden">
         <h2>Rate a Beer</h2>
+        <img id="mainProfilePic" src="default-profile.jpg" alt="Profile Picture" style="width:40px; height:40px; border-radius:50%;">
         <p>Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
         <p><a href="profile.html">View My Profile</a></p>
         <p><a href="add_friend.html">Add a Friend</a></p>
@@ -173,7 +174,6 @@
             authDomain: "beerdex-87d10.firebaseapp.com",
             databaseURL: "https://beerdex-87d10-default-rtdb.firebaseio.com/",
             projectId: "beerdex-87d10",
-            storageBucket: "beerdex-87d10.appspot.com",
             messagingSenderId: "1056856047818",
             appId: "1:1056856047818:web:ac019e2e037bf15509b433"
         };
@@ -261,6 +261,8 @@
                 .then(snapshot => {
                     const userData = snapshot.val();
                     document.getElementById("userDisplay").innerText = userData.username;
+                    document.getElementById("mainProfilePic").src = userData.profilePic || "default-profile.jpg";
+
                 });
 
             document.getElementById("authForm").classList.add("hidden");
