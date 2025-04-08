@@ -43,7 +43,7 @@
             margin-bottom: 10px;
         }
 
-.friend-pic {
+        .friend-pic {
             width: 50px;
             height: 50px;
             border-radius: 50%;
@@ -144,13 +144,12 @@
                         headerRow.className = "friend-header";
 
                         // Profile picture
-                        if (friendData.profilePic) {
-                            const profileImg = document.createElement("img");
-                            profileImg.src = friendData.profilePic;
-                            profileImg.alt = "Profile Picture";
-                            profileImg.className = "friend-pic";
-                            headerRow.appendChild(profileImg);
-                        }
+                        const profileImg = document.createElement("img");
+                        profileImg.src = friendData.profilePic || "default-profile.jpg"; // Default if no profile picture
+                        profileImg.alt = "Profile Picture";
+                        profileImg.className = "friend-pic";
+                        headerRow.appendChild(profileImg);
+
 
                         // Add friend's username before their ratings
                         const friendHeader = document.createElement("div");
