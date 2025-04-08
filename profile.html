@@ -127,39 +127,45 @@ function uploadProfilePic() {
     const formData = new FormData();
     formData.append("image", file);
 
-    statusEl.innerText = "Uploading...";
+    const uploadToImgur = (retry = false) => {
+        statusEl.innerText = retry ? "Retrying..." : "Uploading...";
 
-    fetch("https://api.imgur.com/3/image", {
-        method: "POST",
-        headers: {
-            Authorization: "Client-ID bfe2690a31799b2" // Your actual Imgur client ID
-        },
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error("Imgur upload failed.");
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            const imageUrl = data.data.link;
+        fetch("https://api.imgur.com/3/image", {
+            method: "POST",
+            headers: {
+                Authorization: "Client-ID bfe2690a31799b2"
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Imgur upload failed.");
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const imageUrl = data.data.link;
+                database.ref("users/" + user.uid).update({ profilePic: imageUrl }).then(() => {
+                    document.getElementById("profilePic").src = imageUrl;
+                    statusEl.innerText = "Upload complete!";
+                });
+            } else {
+                throw new Error("Imgur returned success=false");
+            }
+        })
+        .catch(error => {
+            if (!retry) {
+                // Try again after 2 seconds
+                setTimeout(() => uploadToImgur(true), 2000);
+            } else {
+                statusEl.innerText = "Upload failed. Try again later.";
+                console.error("Upload error:", error);
+            }
+        });
+    };
 
-            // Save to Firebase
-            database.ref("users/" + user.uid).update({ profilePic: imageUrl }).then(() => {
-                document.getElementById("profilePic").src = imageUrl;
-                statusEl.innerText = "Upload complete!";
-            });
-        } else {
-            statusEl.innerText = "Upload failed.";
-            console.error("Imgur error response:", data);
-        }
-    })
-    .catch(error => {
-        statusEl.innerText = "Upload error.";
-        console.error("Upload error:", error);
-    });
+    uploadToImgur();
 }
 
 
