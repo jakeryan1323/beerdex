@@ -26,12 +26,26 @@
             text-align: left;
         }
 
+        #profilePic {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ccc;
+            margin-bottom: 10px;
+        }
+
     </style>
 </head>
 <body>
 
     <h2>My Profile</h2>
     <p><strong>Email:</strong> <span id="emailDisplay"></span></p>
+
+    <h3>Profile Picture</h3>
+    <img id="profilePic" src="default-profile.png" alt="Profile Picture">
+    <input type="file" id="profilePicInput" accept="image/*">
+    <button onclick="uploadProfilePic()">Upload New Picture</button>
 
     <h3>Username</h3>
     <input type="text" id="newUsername" placeholder="Enter new username">
@@ -80,6 +94,9 @@
                 if (userData.username) {
                     document.getElementById("newUsername").value = userData.username;
                 }
+                if (userData.profilePic) {
+                    document.getElementById("profilePic").src = userData.profilePic;
+                }
                 loadUserStats(userId);
             });
         }
@@ -92,6 +109,27 @@
                     alert("Username updated!");
                 });
             }
+        }
+
+        function uploadProfilePic() {
+            const user = auth.currentUser;
+            const fileInput = document.getElementById("profilePicInput");
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please select an image first.");
+                return;
+            }
+
+            const storageRef = storage.ref("profile_pics/" + user.uid);
+            storageRef.put(file).then(snapshot => {
+                snapshot.ref.getDownloadURL().then(url => {
+                    database.ref("users/" + user.uid).update({ profilePic: url }).then(() => {
+                        document.getElementById("profilePic").src = url;
+                        alert("Profile picture updated!");
+                    });
+                });
+            });
         }
 
         
