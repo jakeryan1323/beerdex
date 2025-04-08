@@ -46,6 +46,7 @@
     <img id="profilePic" src="default-profile.jpg" alt="Profile Picture">
     <input type="file" id="profilePicInput" accept="image/*">
     <button onclick="uploadProfilePic()">Upload New Picture</button>
+    <p id="uploadStatus"></p>
 
     <h3>Username</h3>
     <input type="text" id="newUsername" placeholder="Enter new username">
@@ -138,7 +139,7 @@
                 uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
                     database.ref("users/" + user.uid).update({ profilePic: downloadURL }).then(() => {
                         document.getElementById("profilePic").src = downloadURL;
-                        document.getElementById("profilePicSmall").src = downloadURL; // Update main page pic
+                        // document.getElementById("profilePicSmall").src = downloadURL; // Update main page pic
                         alert("Profile picture updated!");
                     });
                 });
