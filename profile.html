@@ -62,6 +62,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -129,6 +130,9 @@ function uploadProfilePic() {
         const base64Image = reader.result.split(',')[1]; // Strip base64 header
 
         statusEl.innerText = "Uploading...";
+
+        const imgurUrl = "https://cors-proxy.htmldriven.com/?url=https://api.imgur.com/3/image";
+        const clientId = "Client-ID bfe2690a31799b2"; // Replace with your Imgur Client ID
 
         fetch("https://cors-anywhere.herokuapp.com/https://api.imgur.com/3/image", {
             method: "POST",
