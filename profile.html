@@ -117,14 +117,14 @@ function updateUsername() {
 
 function uploadProfilePic() {
     const user = auth.currentUser;
-    const fileInput = document.getElementById("profilePicInput");
+    const fileInput = document.getElementById('profilePicInput');
     if (fileInput.files.length === 0) {
         alert("Please select a file.");
         return;
     }
 
     const file = fileInput.files[0];
-    const storageRef = storage.ref("profile_pictures/" + user.uid);
+    const storageRef = storage.ref("profile_pictures/" + user.uid + "/" + file.name);
     const uploadTask = storageRef.put(file);
 
     uploadTask.on(
@@ -138,15 +138,21 @@ function uploadProfilePic() {
             alert("Failed to upload image.");
         },
         () => {
-            uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
+            // Once the upload is complete, get the download URL and update the image element
+            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                console.log("File available at", downloadURL);
+                document.getElementById("profilePic").src = downloadURL;  // Update profile picture
+                alert("Profile picture updated!");
+                
+                // Optionally, update the Firebase Database with the new profile picture URL
                 database.ref("users/" + user.uid).update({ profilePic: downloadURL }).then(() => {
-                    document.getElementById("profilePic").src = downloadURL;
-                    alert("Profile picture updated!");
+                    console.log("Profile picture URL updated in the database.");
                 });
             });
         }
     );
 }
+
 
 function loadUserStats(userId) {
     // Load stats like total ratings, highest rated beer, etc.
