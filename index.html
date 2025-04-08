@@ -445,6 +445,50 @@ function deleteRating(ratingId) {
 }
 
 
+function signUp() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const username = document.getElementById("username").value.trim();
+
+    if (!email || !password) {
+        alert("Email and password are required.");
+        return;
+    }
+
+    auth.createUserWithEmailAndPassword(email, password)
+        .then(userCredential => {
+            const user = userCredential.user;
+            return database.ref("users/" + user.uid).set({
+                email: email,
+                username: username || email.split('@')[0], // fallback to part of email
+                profilePic: "default-profile.jpg"
+            });
+        })
+        .then(() => {
+            alert("Account created!");
+            showRatingForm(auth.currentUser);
+        })
+        .catch(error => {
+            console.error("Sign Up Error:", error);
+            alert("Error: " + error.message);
+        });
+}
+
+function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    auth.signInWithEmailAndPassword(email, password)
+        .then(userCredential => {
+            showRatingForm(userCredential.user);
+        })
+        .catch(error => {
+            console.error("Login Error:", error);
+            alert("Error: " + error.message);
+        });
+}
+
+
     </script>
 </body>
 </html>
