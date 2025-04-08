@@ -111,26 +111,51 @@
             }
         }
 
-        function uploadProfilePic() {
-            const user = auth.currentUser;
-            const fileInput = document.getElementById("profilePicInput");
-            const file = fileInput.files[0];
 
-            if (!file) {
-                alert("Please select an image first.");
-                return;
-            }
+    function uploadProfilePic() {
+        const user = auth.currentUser;
+        const fileInput = document.getElementById("profilePicInput");
+        if (fileInput.files.length === 0) {
+            alert("Please select a file.");
+            return;
+        }
 
-            const storageRef = storage.ref("profile_pics/" + user.uid);
-            storageRef.put(file).then(snapshot => {
-                snapshot.ref.getDownloadURL().then(url => {
-                    database.ref("users/" + user.uid).update({ profilePic: url }).then(() => {
-                        document.getElementById("profilePic").src = url;
+        const file = fileInput.files[0];
+        const storageRef = storage.ref("profile_pictures/" + user.uid);
+        const uploadTask = storageRef.put(file);
+
+        uploadTask.on(
+            "state_changed",
+            snapshot => {
+                let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                document.getElementById("uploadStatus").innerText = "Uploading: " + Math.round(progress) + "%";
+            },
+            error => {
+                console.error("Upload error:", error);
+                alert("Failed to upload image.");
+            },
+            () => {
+                uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
+                    database.ref("users/" + user.uid).update({ profilePic: downloadURL }).then(() => {
+                        document.getElementById("profilePic").src = downloadURL;
+                        document.getElementById("profilePicSmall").src = downloadURL; // Update main page pic
                         alert("Profile picture updated!");
                     });
                 });
+            }
+        );
+    }
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            database.ref("users/" + user.uid).once("value").then(snapshot => {
+                const userData = snapshot.val();
+                if (userData.profilePic) {
+                    document.getElementById("profilePic").src = userData.profilePic;
+                }
             });
         }
+    });
 
         
 
