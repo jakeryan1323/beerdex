@@ -62,7 +62,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -70,7 +69,6 @@
             authDomain: "beerdex-87d10.firebaseapp.com",
             databaseURL: "https://beerdex-87d10-default-rtdb.firebaseio.com/",
             projectId: "beerdex-87d10",
-            storageBucket: "beerdex-87d10.appspot.com",
             messagingSenderId: "1056856047818",
             appId: "1:1056856047818:web:ac019e2e037bf15509b433"
         };
@@ -79,7 +77,6 @@
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const database = firebase.database();
-const storage = firebase.storage();
 
 // Listen for Auth State Changes
 auth.onAuthStateChanged(user => {
@@ -117,41 +114,57 @@ function updateUsername() {
 
 function uploadProfilePic() {
     const user = auth.currentUser;
-    const fileInput = document.getElementById('profilePicInput');
+    const fileInput = document.getElementById("profilePicInput");
+    const statusEl = document.getElementById("uploadStatus");
+
     if (fileInput.files.length === 0) {
         alert("Please select a file.");
         return;
     }
 
     const file = fileInput.files[0];
-    const storageRef = storage.ref("profile_pictures/" + user.uid + "/" + file.name);
-    const uploadTask = storageRef.put(file);
+    const reader = new FileReader();
 
-    uploadTask.on(
-        "state_changed",
-        snapshot => {
-            let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            document.getElementById("uploadStatus").innerText = "Uploading: " + Math.round(progress) + "%";
-        },
-        error => {
-            console.error("Upload error:", error);
-            alert("Failed to upload image.");
-        },
-        () => {
-            // Once the upload is complete, get the download URL and update the image element
-            uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                console.log("File available at", downloadURL);
-                document.getElementById("profilePic").src = downloadURL;  // Update profile picture
-                alert("Profile picture updated!");
-                
-                // Optionally, update the Firebase Database with the new profile picture URL
-                database.ref("users/" + user.uid).update({ profilePic: downloadURL }).then(() => {
-                    console.log("Profile picture URL updated in the database.");
+    reader.onloadend = function () {
+        const base64Image = reader.result.split(',')[1]; // Strip base64 header
+
+        statusEl.innerText = "Uploading...";
+
+        fetch("https://cors-anywhere.herokuapp.com/https://api.imgur.com/3/image", {
+            method: "POST",
+            headers: {
+                Authorization: "Client-ID bfe2690a31799b2", // Your Imgur Client ID
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                image: base64Image,
+                type: "base64"
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const imageUrl = data.data.link;
+
+                // Save to Firebase Database
+                database.ref("users/" + user.uid).update({ profilePic: imageUrl }).then(() => {
+                    document.getElementById("profilePic").src = imageUrl;
+                    statusEl.innerText = "Upload complete!";
                 });
-            });
-        }
-    );
+            } else {
+                statusEl.innerText = "Imgur upload failed.";
+                console.error(data);
+            }
+        })
+        .catch(error => {
+            statusEl.innerText = "Upload error.";
+            console.error(error);
+        });
+    };
+
+    reader.readAsDataURL(file);
 }
+
 
 
 function loadUserStats(userId) {
