@@ -499,6 +499,13 @@ function login() {
         });
 }
 
+function logout() {
+            auth.signOut().then(() => {
+                document.getElementById("authForm").classList.remove("hidden");
+                document.getElementById("ratingForm").classList.add("hidden");
+            });
+        }
+
 function forgotPassword() {
     const email = document.getElementById("email").value.trim();
 
