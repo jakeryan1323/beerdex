@@ -334,6 +334,8 @@ function saveRating(ratingData, userId) {
             <p><strong>Occasion:</strong> <span id="occasion-${childSnapshot.key}">${ratingData.occasion}</span></p>
             <p><strong>Comments:</strong> <span id="comments-${childSnapshot.key}">${ratingData.comments}</span></p>
             <div id="stars-${childSnapshot.key}" class="stars"></div>
+            ${ratingData.imageUrl ? `<img src="${ratingData.imageUrl}" alt="Beer Image" style="max-width: 100%; border-radius: 5px; margin-top: 10px;">` : ""}
+
         `;
 
             ratingDiv.appendChild(starContainer);
