@@ -181,6 +181,7 @@
                                         <p><strong>Location:</strong> ${rating.location}</p>
                                         <p><strong>Occasion:</strong> ${rating.occasion}</p>
                                         <p><strong>Comments:</strong> ${rating.comments}</p>
+                                         ${r.imageUrl ? `<img src="${r.imageUrl}" alt="Beer Image" style="max-width: 25%; border-radius: 5px; margin-top: 10px;">` : ""}
                                     `;
 
                                     friendContainer.appendChild(ratingDiv);

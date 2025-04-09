@@ -159,6 +159,8 @@
         <input type="text" id="location" placeholder="Location (e.g., Bar XYZ)">
         <input type="text" id="occasion" placeholder="Occasion (e.g., Birthday Party)">
         <textarea id="comments" placeholder="Overall Comments"></textarea>
+        <input type="file" id="beerImage" accept="image/*">
+
         
         <button onclick="submitRating()">Submit</button>
         
@@ -238,33 +240,57 @@
 
         function submitRating() {
     const beerName = document.getElementById("beerName").value.trim();
+    const rating = parseFloat(document.getElementById("rating").value);
     const location = document.getElementById("location").value.trim();
     const occasion = document.getElementById("occasion").value.trim();
     const comments = document.getElementById("comments").value.trim();
-    const ratingDate = document.getElementById("ratingDate").value || new Date().toISOString();
+    const imageFile = document.getElementById("beerImage").files[0];
     const user = auth.currentUser;
 
-    if (!beerName || selectedRating === 0) {
-        alert("Please enter a beer name and select a rating.");
+    if (!beerName || isNaN(rating)) {
+        alert("Please enter a beer name and rating.");
         return;
     }
 
-    database.ref("users/" + user.uid + "/ratings").push({
-        beerName,
-        rating: selectedRating,
-        location,
-        occasion,
-        comments,
-        date: ratingDate
-    }).then(() => {
+    if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = function () {
+            const base64Image = reader.result.split(',')[1];
+            fetch("https://api.imgur.com/3/image", {
+                method: "POST",
+                headers: {
+                    Authorization: "Client-ID 546d3604f50d528",
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ image: base64Image, type: "base64" }),
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const imageUrl = data.data.link;
+                    saveRating({ beerName, rating, location, occasion, comments, imageUrl }, user.uid);
+                })
+                .catch(err => {
+                    alert("Image upload failed. Saving without image.");
+                    saveRating({ beerName, rating, location, occasion, comments }, user.uid);
+                });
+        };
+        reader.readAsDataURL(imageFile);
+    } else {
+        saveRating({ beerName, rating, location, occasion, comments }, user.uid);
+    }
+}
+
+function saveRating(ratingData, userId) {
+    database.ref("users/" + userId + "/ratings").push(ratingData).then(() => {
         document.getElementById("beerName").value = "";
         document.getElementById("location").value = "";
         document.getElementById("occasion").value = "";
         document.getElementById("comments").value = "";
-        document.getElementById("ratingDate").value = "";
-        loadRatings(user.uid);
+        document.getElementById("beerImage").value = "";
+        loadRatings(userId);
     });
 }
+
 
 
         function showRatingForm(user) {
@@ -427,6 +453,7 @@ function displayRatings(ratings) {
             <p><strong>Occasion:</strong> <span id="occasion-${ratingData.id}">${ratingData.occasion}</span></p>
             <p><strong>Comments:</strong> <span id="comments-${ratingData.id}">${ratingData.comments}</span></p>
             <div id="stars-${ratingData.id}" class="stars"></div>
+             ${r.imageUrl ? `<img src="${r.imageUrl}" alt="Beer Image" style="max-width: 100%; border-radius: 5px; margin-top: 10px;">` : ""}
         `;
 
         ratingDiv.appendChild(starContainer);
