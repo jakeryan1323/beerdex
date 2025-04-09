@@ -453,7 +453,7 @@ function displayRatings(ratings) {
             <p><strong>Occasion:</strong> <span id="occasion-${ratingData.id}">${ratingData.occasion}</span></p>
             <p><strong>Comments:</strong> <span id="comments-${ratingData.id}">${ratingData.comments}</span></p>
             <div id="stars-${ratingData.id}" class="stars"></div>
-             ${r.imageUrl ? `<img src="${r.imageUrl}" alt="Beer Image" style="max-width: 100%; border-radius: 5px; margin-top: 10px;">` : ""}
+             ${ratingData.imageUrl ? `<img src="${ratingData.imageUrl}" alt="Beer Image" style="max-width: 100%; border-radius: 5px; margin-top: 10px;">` : ""}
         `;
 
         ratingDiv.appendChild(starContainer);
