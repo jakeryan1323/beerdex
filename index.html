@@ -359,6 +359,12 @@ function saveRating(ratingData, userId) {
     const dateSpan = document.getElementById(`date-${ratingId}`);
     const starsContainer = document.getElementById(`stars-${ratingId}`);
 
+    // Find the rating container div
+    const ratingDiv = beerSpan.closest(".rating-container");
+
+    // Save original HTML in case user cancels
+    ratingDiv.dataset.originalHtml = ratingDiv.innerHTML;
+
     // Store current values
     const currentBeer = beerSpan.innerText;
     const currentLocation = locationSpan.innerText;
@@ -374,22 +380,37 @@ function saveRating(ratingData, userId) {
     dateSpan.innerHTML = `<input type="date" id="edit-date-${ratingId}" value="${currentDate}">`;
 
     // Replace stars with an interactive rating selector
-    let newRating = parseFloat(starsContainer.dataset.rating); // Get current rating
+    let newRating = parseFloat(starsContainer.dataset.rating || 0); // Default to 0 if not found
     starsContainer.innerHTML = "";
     createRatingStars(starsContainer, function (rating) {
         newRating = rating;
         updateStars(starsContainer, rating);
     });
 
-    // Add a Save button
+    // Add Save and Cancel buttons
     const saveButton = document.createElement("button");
     saveButton.innerText = "Save";
     saveButton.onclick = function () {
         saveEditedRating(ratingId, newRating);
     };
 
-    // Append Save button next to Edit button
-    document.querySelector(`[onclick="editRating('${ratingId}')"]`).after(saveButton);
+    const cancelButton = document.createElement("button");
+    cancelButton.innerText = "Cancel";
+    cancelButton.onclick = function () {
+        cancelEdit(ratingId);
+    };
+
+    // Append Save and Cancel buttons to the div
+    starsContainer.after(saveButton, cancelButton);
+}
+
+function cancelEdit(ratingId) {
+    const beerSpan = document.getElementById(`beer-${ratingId}`);
+    const ratingDiv = beerSpan.closest(".rating-container");
+
+    if (ratingDiv && ratingDiv.dataset.originalHtml) {
+        ratingDiv.innerHTML = ratingDiv.dataset.originalHtml;
+    }
 }
 
 
