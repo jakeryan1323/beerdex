@@ -192,6 +192,7 @@
                                 ${rating.imageUrl ? `<img src="${rating.imageUrl}" alt="Beer Image" style="max-width: 100%; border-radius: 5px; margin-top: 10px;">` : ""}
                             `;
 
+                            // Add stars
                             setTimeout(() => {
                                 const starsContainer = document.getElementById(ratingId);
                                 if (starsContainer) {
@@ -226,8 +227,14 @@
                                     extraRatingsDivs.forEach(div => div.remove());
                                     toggleBtn.innerText = "Show All Ratings";
                                 } else {
-                                    // Expand: show extra ratings
-                                    extraRatingsDivs.forEach(div => friendContainer.insertBefore(div, toggleBtn));
+                                    // Expand: show extra ratings and add stars
+                                    extraRatingsDivs.forEach(div => {
+                                        friendContainer.insertBefore(div, toggleBtn);
+                                        const starsContainer = div.querySelector(".stars");
+                                        const ratingKey = div.querySelector("strong").innerText; // Get beer name as key
+                                        const rating = allRatings.find(rating => rating.beerName === ratingKey);
+                                        createStars(starsContainer, rating.rating);
+                                    });
                                     toggleBtn.innerText = "Show Less";
                                 }
                                 isExpanded = !isExpanded;
@@ -241,6 +248,7 @@
         });
     });
 }
+
 
 
         auth.onAuthStateChanged(user => {
