@@ -101,109 +101,147 @@
         }
 
         function loadFriendsRatings() {
-            const user = auth.currentUser;
-            if (!user) {
-                alert("Please log in to see friends' ratings.");
-                window.location.href = "index.html";
+    const user = auth.currentUser;
+    if (!user) {
+        alert("Please log in to see friends' ratings.");
+        window.location.href = "index.html";
+        return;
+    }
+
+    const friendsRatingsList = document.getElementById("friendsRatingsList");
+    friendsRatingsList.innerHTML = "";
+
+    // Get the list of friends
+    database.ref("users/" + user.uid + "/friends").once("value", snapshot => {
+        if (!snapshot.exists()) {
+            friendsRatingsList.innerHTML = "<p>You have no friends added yet.</p>";
+            return;
+        }
+
+        snapshot.forEach(friendSnapshot => {
+            const friendId = friendSnapshot.key;
+
+            if (!friendId || typeof friendId !== "string") {
+                console.error(`Invalid friend ID: ${friendId}`);
                 return;
             }
 
-            const friendsRatingsList = document.getElementById("friendsRatingsList");
-            friendsRatingsList.innerHTML = "";
-
-            // Get the list of friends
-            database.ref("users/" + user.uid + "/friends").once("value", snapshot => {
-                if (!snapshot.exists()) {
-                    friendsRatingsList.innerHTML = "<p>You have no friends added yet.</p>";
+            database.ref("users/" + friendId).once("value").then(friendUserSnap => {
+                const friendData = friendUserSnap.val();
+                if (!friendData) {
+                    console.error(`No data found for friend ID: ${friendId}`);
                     return;
                 }
 
-                snapshot.forEach(friendSnapshot => {
-                    const friendId = friendSnapshot.key;
+                const friendUsername = friendData.username ? friendData.username : friendData.email ? friendData.email : "Unknown";
 
-                    if (!friendId || typeof friendId !== "string") {
-                        console.error(`Invalid friend ID: ${friendId}`);
-                        return;
-                    }
+                // Create a container for each friend
+                const friendContainer = document.createElement("div");
+                friendContainer.className = "friend-container";
 
-                    database.ref("users/" + friendId).once("value").then(friendUserSnap => {
-                        const friendData = friendUserSnap.val();
-                        if (!friendData) {
-                            console.error(`No data found for friend ID: ${friendId}`);
-                            return;
+                // Create a horizontal layout for profile picture and username
+                const headerRow = document.createElement("div");
+                headerRow.className = "friend-header";
+
+                // Profile picture
+                const profileImg = document.createElement("img");
+                profileImg.src = friendData.profilePic || "default-profile.jpg"; // Default if no profile picture
+                profileImg.alt = "Profile Picture";
+                profileImg.className = "friend-pic";
+                headerRow.appendChild(profileImg);
+
+                // Add friend's username before their ratings
+                const friendHeader = document.createElement("div");
+                friendHeader.className = "username-header";
+                friendHeader.innerText = friendUsername;
+                friendContainer.appendChild(friendHeader);
+
+                // Append the horizontal header to the friend container
+                friendContainer.appendChild(headerRow);
+
+                // Fetch their ratings
+                database.ref("users/" + friendId + "/ratings").once("value", ratingsSnapshot => {
+                    if (!ratingsSnapshot.exists()) {
+                        const noRatings = document.createElement("p");
+                        noRatings.innerText = "No ratings available.";
+                        friendContainer.appendChild(noRatings);
+                    } else {
+                        const allRatings = [];
+                        ratingsSnapshot.forEach(ratingSnap => {
+                            const rating = ratingSnap.val();
+                            allRatings.push({ key: ratingSnap.key, ...rating });
+                        });
+
+                        // Sort ratings by most recent
+                        allRatings.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                        // Function to create the rating div
+                        function createRatingDiv(rating) {
+                            const ratingId = `stars-${rating.key}`;
+                            const formattedDate = rating.date ? new Date(rating.date).toLocaleDateString() : "Unknown";
+
+                            const ratingDiv = document.createElement("div");
+                            ratingDiv.className = "rating-container extra-rating";
+                            ratingDiv.innerHTML = `
+                                <p><strong>${rating.beerName}</strong></p>
+                                <div id="${ratingId}" class="stars"></div>
+                                <p><strong>Date:</strong> ${formattedDate}</p>
+                                <p><strong>Location:</strong> ${rating.location}</p>
+                                <p><strong>Occasion:</strong> ${rating.occasion}</p>
+                                <p><strong>Comments:</strong> ${rating.comments}</p>
+                                ${rating.imageUrl ? `<img src="${rating.imageUrl}" alt="Beer Image" style="max-width: 100%; border-radius: 5px; margin-top: 10px;">` : ""}
+                            `;
+
+                            setTimeout(() => {
+                                const starsContainer = document.getElementById(ratingId);
+                                if (starsContainer) {
+                                    createStars(starsContainer, rating.rating);
+                                }
+                            }, 0);
+
+                            return ratingDiv;
                         }
 
-                        const friendUsername = friendData.username ? friendData.username : friendData.email ? friendData.email : "Unknown";
-
-                        // Create a container for each friend
-                        const friendContainer = document.createElement("div");
-                        friendContainer.className = "friend-container";
-
-                        // Create a horizontal layout for profile picture and username
-                        const headerRow = document.createElement("div");
-                        headerRow.className = "friend-header";
-
-                        // Profile picture
-                        const profileImg = document.createElement("img");
-                        profileImg.src = friendData.profilePic || "default-profile.jpg"; // Default if no profile picture
-                        profileImg.alt = "Profile Picture";
-                        profileImg.className = "friend-pic";
-                        headerRow.appendChild(profileImg);
-
-
-                        // Add friend's username before their ratings
-                        const friendHeader = document.createElement("div");
-                        friendHeader.className = "username-header";
-                        friendHeader.innerText = friendUsername;
-                        friendContainer.appendChild(friendHeader);
-
-                        // Append the horizontal header to the friend container
-                        friendContainer.appendChild(headerRow);
-
-                        // Fetch their ratings
-                        database.ref("users/" + friendId + "/ratings").once("value", ratingsSnapshot => {
-                            if (!ratingsSnapshot.exists()) {
-                                const noRatings = document.createElement("p");
-                                noRatings.innerText = "No ratings available.";
-                                friendContainer.appendChild(noRatings);
-                            } else {
-                                ratingsSnapshot.forEach(ratingSnap => {
-                                    const rating = ratingSnap.val();
-                                    const ratingId = `stars-${ratingSnap.key}`;
-                                    const formattedDate = rating.date ? new Date(rating.date).toLocaleDateString() : "Unknown";
-
-                                    const ratingDiv = document.createElement("div");
-                                    ratingDiv.className = "rating-container";
-                                    ratingDiv.innerHTML = `
-                                        <p><strong>${rating.beerName}</strong></p>
-                                        <div id="${ratingId}" class="stars"></div>
-                                        <p><strong>Date:</strong> ${formattedDate}</p>
-                                        <p><strong>Location:</strong> ${rating.location}</p>
-                                        <p><strong>Occasion:</strong> ${rating.occasion}</p>
-                                        <p><strong>Comments:</strong> ${rating.comments}</p>
-                                         ${rating.imageUrl ? `<img src="${rating.imageUrl}" alt="Beer Image" style="max-width: 100%; border-radius: 5px; margin-top: 10px;">` : ""}
-                                    `;
-
-                                    friendContainer.appendChild(ratingDiv);
-
-                                    // Delay the star rendering to ensure the element exists
-                                    setTimeout(() => {
-                                        const starsContainer = document.getElementById(ratingId);
-                                        if (starsContainer) {
-                                            createStars(starsContainer, rating.rating);
-                                        } else {
-                                            console.error("Stars container not found for:", ratingSnap.key);
-                                        }
-                                    }, 0);
-                                });
-                            }
-                            // Append each friend's ratings under their name
-                            friendsRatingsList.appendChild(friendContainer);
+                        // Show top 5 by default
+                        const ratingsToShow = allRatings.slice(0, 5);
+                        ratingsToShow.forEach(rating => {
+                            const ratingDiv = createRatingDiv(rating);
+                            ratingDiv.classList.remove("extra-rating"); // these stay visible
+                            friendContainer.appendChild(ratingDiv);
                         });
-                    });
+
+                        // If there are more than 5, add toggle button
+                        if (allRatings.length > 5) {
+                            let isExpanded = false;
+                            const extraRatingsDivs = allRatings.slice(5).map(rating => createRatingDiv(rating));
+
+                            const toggleBtn = document.createElement("button");
+                            toggleBtn.innerText = "Show All Ratings";
+                            toggleBtn.style.marginTop = "10px";
+                            friendContainer.appendChild(toggleBtn);
+
+                            toggleBtn.addEventListener("click", () => {
+                                if (isExpanded) {
+                                    // Collapse: remove extra ratings
+                                    extraRatingsDivs.forEach(div => div.remove());
+                                    toggleBtn.innerText = "Show All Ratings";
+                                } else {
+                                    // Expand: show extra ratings
+                                    extraRatingsDivs.forEach(div => friendContainer.insertBefore(div, toggleBtn));
+                                    toggleBtn.innerText = "Show Less";
+                                }
+                                isExpanded = !isExpanded;
+                            });
+                        }
+                    }
+                    // Append each friend's ratings under their name
+                    friendsRatingsList.appendChild(friendContainer);
                 });
             });
-        }
+        });
+    });
+}
+
 
         auth.onAuthStateChanged(user => {
             if (user) loadFriendsRatings();
