@@ -122,7 +122,11 @@
     text-decoration: underline;
     cursor: pointer;
 }
-
+.small-input {
+    font-size: 14px;
+    padding: 4px 6px;
+    width: 75%;
+  }
 
     </style>
 </head>
@@ -375,11 +379,11 @@ function saveRating(ratingData, userId) {
     const currentDate = dateSpan.innerText;
 
     // Make text fields editable
-    beerSpan.innerHTML = `<input type="text" id="edit-beer-${ratingId}" value="${currentBeer}">`;
-    locationSpan.innerHTML = `<input type="text" id="edit-location-${ratingId}" value="${currentLocation}">`;
-    occasionSpan.innerHTML = `<input type="text" id="edit-occasion-${ratingId}" value="${currentOccasion}">`;
-    commentsSpan.innerHTML = `<input type="text" id="edit-comments-${ratingId}" value="${currentComments}">`;
-    dateSpan.innerHTML = `<input type="date" id="edit-date-${ratingId}" value="${currentDate}">`;
+    beerSpan.innerHTML = `<input type="text" class="small-input" id="edit-beer-${ratingId}" value="${currentBeer}">`;
+    locationSpan.innerHTML = `<input type="text" class="small-input" id="edit-location-${ratingId}" value="${currentLocation}">`;
+    occasionSpan.innerHTML = `<input type="text" class="small-input" id="edit-occasion-${ratingId}" value="${currentOccasion}">`;
+    commentsSpan.innerHTML = `<input type="text" class="small-input" id="edit-comments-${ratingId}" value="${currentComments}">`;
+    dateSpan.innerHTML = `<input type="date" class="small-input" id="edit-date-${ratingId}" value="${currentDate}">`;
 
     // Replace stars with an interactive rating selector
     let newRating = parseFloat(starsContainer.dataset.rating || 0); // Default to 0 if not found
