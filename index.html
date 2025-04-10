@@ -272,12 +272,12 @@
                 })
                 .catch(err => {
                     alert("Image upload failed. Saving without image.");
-                    saveRating({ beerName, rating, location, occasion, comments }, user.uid);
+                    saveRating({ beerName, rating, location, occasion, date, comments }, user.uid);
                 });
         };
         reader.readAsDataURL(imageFile);
     } else {
-        saveRating({ beerName, rating, location, occasion, comments }, user.uid);
+        saveRating({ beerName, rating, location, occasion, date, comments }, user.uid);
     }
 }
 
@@ -286,6 +286,7 @@ function saveRating(ratingData, userId) {
         document.getElementById("beerName").value = "";
         document.getElementById("location").value = "";
         document.getElementById("occasion").value = "";
+        document.getElementById("ratingDate").value = "";
         document.getElementById("comments").value = "";
         document.getElementById("beerImage").value = "";
         loadRatings(userId);
