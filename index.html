@@ -387,6 +387,13 @@ function saveRating(ratingData, userId) {
         updateStars(starsContainer, rating);
     });
 
+    const imageInput = document.createElement("input");
+    imageInput.type = "file";
+    imageInput.accept = "image/*";
+    imageInput.id = `edit-image-${ratingId}`;
+    starsContainer.after(imageInput);
+
+
     // Add Save and Cancel buttons
     const saveButton = document.createElement("button");
     saveButton.innerText = "Save";
@@ -421,19 +428,52 @@ function saveEditedRating(ratingId, newRating) {
     const newOccasion = document.getElementById(`edit-occasion-${ratingId}`).value;
     const newComments = document.getElementById(`edit-comments-${ratingId}`).value;
     const newDate = document.getElementById(`edit-date-${ratingId}`).value;
+    const newImageFile = document.getElementById(`edit-image-${ratingId}`).files[0];
 
-    database.ref(`users/${user.uid}/ratings/${ratingId}`).update({
+    const updateData = {
         beerName: newBeerName,
         location: newLocation,
         occasion: newOccasion,
         comments: newComments,
         date: newDate,
-        rating: newRating // Update the rating!
-    }).then(() => {
-        alert("Rating updated!");
-        loadRatings(user.uid); // Reload the ratings to show the updated values
-    });
+        rating: newRating
+    };
+
+    if (newImageFile) {
+        const reader = new FileReader();
+        reader.onload = function () {
+            const base64Image = reader.result.split(',')[1];
+            fetch("https://api.imgur.com/3/image", {
+                method: "POST",
+                headers: {
+                    Authorization: "Client-ID 546d3604f50d528",
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ image: base64Image, type: "base64" }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                updateData.imageUrl = data.data.link;
+                finishUpdate();
+            })
+            .catch(() => {
+                alert("Image upload failed. Changes saved without updating image.");
+                finishUpdate();
+            });
+        };
+        reader.readAsDataURL(newImageFile);
+    } else {
+        finishUpdate();
+    }
+
+    function finishUpdate() {
+        database.ref(`users/${user.uid}/ratings/${ratingId}`).update(updateData).then(() => {
+            alert("Rating updated!");
+            loadRatings(user.uid);
+        });
+    }
 }
+
 
 function sortRatings() {
     if (!window.ratingsData) return; // Ensure ratings are loaded
