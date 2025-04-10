@@ -240,7 +240,8 @@
 
         function submitRating() {
     const beerName = document.getElementById("beerName").value.trim();
-    const rating = parseFloat(document.getElementById("rating").value);
+    const rating = selectedRating;
+    const date = document.getElementById("ratingDate").value;
     const location = document.getElementById("location").value.trim();
     const occasion = document.getElementById("occasion").value.trim();
     const comments = document.getElementById("comments").value.trim();
@@ -267,7 +268,7 @@
                 .then(res => res.json())
                 .then(data => {
                     const imageUrl = data.data.link;
-                    saveRating({ beerName, rating, location, occasion, comments, imageUrl }, user.uid);
+                    saveRating({ beerName, rating, location, date, occasion, comments, imageUrl }, user.uid);
                 })
                 .catch(err => {
                     alert("Image upload failed. Saving without image.");
@@ -370,7 +371,7 @@ function saveRating(ratingData, userId) {
     locationSpan.innerHTML = `<input type="text" id="edit-location-${ratingId}" value="${currentLocation}">`;
     occasionSpan.innerHTML = `<input type="text" id="edit-occasion-${ratingId}" value="${currentOccasion}">`;
     commentsSpan.innerHTML = `<input type="text" id="edit-comments-${ratingId}" value="${currentComments}">`;
-    dateSpan.innerHTML = `<input type="text" id="edit-date-${ratingId}" value="${currentDate}">`;
+    dateSpan.innerHTML = `<input type="date" id="edit-date-${ratingId}" value="${currentDate}">`;
 
     // Replace stars with an interactive rating selector
     let newRating = parseFloat(starsContainer.dataset.rating); // Get current rating
