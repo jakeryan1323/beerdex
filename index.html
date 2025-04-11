@@ -400,28 +400,25 @@ function saveRating(ratingData, userId) {
     imageInput.id = `edit-image-${ratingId}`;
     starsContainer.after(imageInput);
 
-    // If there is an image already associated with the rating, show it with a red "X" to delete
+    // If there is an image already associated with the rating, show it with a "Delete Picture" button
     const imageElement = document.getElementById(`image-${ratingId}`);
     if (imageElement && imageElement.src) {
         const deleteImageButton = document.createElement("button");
-        deleteImageButton.innerHTML = "&#10006;"; // Red "X" character
+        deleteImageButton.innerText = "Delete Picture";
         deleteImageButton.style.color = "red";
         deleteImageButton.style.background = "none";
-        deleteImageButton.style.border = "none";
+        deleteImageButton.style.border = "1px solid red";
         deleteImageButton.style.cursor = "pointer";
-        deleteImageButton.style.fontSize = "20px";
-        deleteImageButton.style.position = "absolute";
-        deleteImageButton.style.top = "10px";
-        deleteImageButton.style.right = "10px";
+        deleteImageButton.style.marginTop = "10px";
 
-        // Insert the "X" button near the image
-        imageElement.after(deleteImageButton);
+        // Insert the "Delete Picture" button below the image input
+        imageInput.after(deleteImageButton);
 
         deleteImageButton.onclick = function () {
-            // Delete the image by clearing the input and hiding the "X"
+            // Delete the image by clearing the input and hiding the image element
             imageInput.value = ''; // Clear the file input
-            deleteImageButton.style.display = "none"; // Hide the "X" button
             imageElement.style.display = "none"; // Hide the image itself
+            deleteImageButton.style.display = "none"; // Hide the "Delete Picture" button
         };
     }
 
@@ -441,6 +438,7 @@ function saveRating(ratingData, userId) {
     // Append Save and Cancel buttons to the div
     starsContainer.after(saveButton, cancelButton);
 }
+
 
 
 
