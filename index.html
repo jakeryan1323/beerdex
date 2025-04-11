@@ -364,7 +364,7 @@ function uploadImage(file) {
         fetch("https://api.imgur.com/3/image", {
             method: "POST",
             headers: {
-                "Authorization": `Client-ID ${IMGUR_CLIENT_ID}`, // Replace with your actual Imgur Client ID
+                "Authorization": "Client-ID 546d3604f50d528", // Replace with your actual Imgur Client ID
             },
             body: formData
         })
@@ -505,6 +505,7 @@ function saveEditedRating(ratingId, newRating) {
         // If no new image, just save the rating
         updateRating(ratingId, beerName, location, occasion, comments, date, newRating, imageUrl);
     }
+    window.location.href = window.location.href;
 }
 
 // Update the rating in the database after editing
