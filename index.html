@@ -400,7 +400,7 @@ function saveRating(ratingData, userId) {
     imageInput.id = `edit-image-${ratingId}`;
     starsContainer.after(imageInput);
 
-    // If there is an image already associated with the rating, show it with a "Delete Picture" button
+    // Get the image element, if any, and show it along with the "Delete Picture" button
     const imageElement = document.getElementById(`image-${ratingId}`);
     if (imageElement && imageElement.src) {
         const deleteImageButton = document.createElement("button");
@@ -415,7 +415,7 @@ function saveRating(ratingData, userId) {
         imageInput.after(deleteImageButton);
 
         deleteImageButton.onclick = function () {
-            // Delete the image by clearing the input and hiding the image element
+            // Clear the image input and hide the existing image
             imageInput.value = ''; // Clear the file input
             imageElement.style.display = "none"; // Hide the image itself
             deleteImageButton.style.display = "none"; // Hide the "Delete Picture" button
@@ -438,6 +438,7 @@ function saveRating(ratingData, userId) {
     // Append Save and Cancel buttons to the div
     starsContainer.after(saveButton, cancelButton);
 }
+
 
 
 
