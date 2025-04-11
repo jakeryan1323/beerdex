@@ -400,14 +400,23 @@ function saveRating(ratingData, userId) {
     imageInput.id = `edit-image-${ratingId}`;
     starsContainer.after(imageInput);
 
-    // Add Delete Image checkbox
-    const deleteImageCheckbox = document.createElement("input");
-    deleteImageCheckbox.type = "checkbox";
-    deleteImageCheckbox.id = `delete-image-${ratingId}`;
-    const deleteImageLabel = document.createElement("label");
-    deleteImageLabel.setAttribute("for", `delete-image-${ratingId}`);
-    deleteImageLabel.innerText = "Delete Image";
-    starsContainer.after(deleteImageCheckbox, deleteImageLabel);
+    // If there is an image already associated with the rating, show it with a red "X" to delete
+    const imageUrl = document.getElementById(`image-${ratingId}`)?.src;
+    if (imageUrl) {
+        const deleteImageButton = document.createElement("button");
+        deleteImageButton.innerHTML = "&#10006;"; // Red "X" character
+        deleteImageButton.style.color = "red";
+        deleteImageButton.style.background = "none";
+        deleteImageButton.style.border = "none";
+        deleteImageButton.style.cursor = "pointer";
+        deleteImageButton.style.fontSize = "20px";
+        deleteImageButton.onclick = function() {
+            // Delete the image
+            imageInput.value = ''; // Clear the input (optional)
+            deleteImageButton.style.display = "none"; // Hide the delete button
+        };
+        starsContainer.after(deleteImageButton);
+    }
 
     // Add Save and Cancel buttons
     const saveButton = document.createElement("button");
@@ -450,7 +459,6 @@ function saveEditedRating(ratingId, newRating) {
     const editedOccasion = document.getElementById(`edit-occasion-${ratingId}`).value;
     const editedComments = document.getElementById(`edit-comments-${ratingId}`).value;
     const editedDate = document.getElementById(`edit-date-${ratingId}`).value;
-    const deleteImage = document.getElementById(`delete-image-${ratingId}`).checked;
 
     let editedImageUrl = null;
 
@@ -460,19 +468,15 @@ function saveEditedRating(ratingId, newRating) {
         // Assuming you upload the image and get the URL from Imgur (or another service)
         uploadImage(file).then(url => {
             editedImageUrl = url;
-            saveToDatabase(ratingId, editedBeer, editedLocation, editedOccasion, editedComments, editedDate, newRating, editedImageUrl, deleteImage);
+            saveToDatabase(ratingId, editedBeer, editedLocation, editedOccasion, editedComments, editedDate, newRating, editedImageUrl);
         });
-    } else if (deleteImage) {
-        // If the user selected to delete the image, just remove it
-        editedImageUrl = null;
-        saveToDatabase(ratingId, editedBeer, editedLocation, editedOccasion, editedComments, editedDate, newRating, editedImageUrl, deleteImage);
     } else {
-        // If no new image is selected, proceed with current image
-        saveToDatabase(ratingId, editedBeer, editedLocation, editedOccasion, editedComments, editedDate, newRating, editedImageUrl, deleteImage);
+        // If no new image is selected, proceed with current image or null if deleted
+        saveToDatabase(ratingId, editedBeer, editedLocation, editedOccasion, editedComments, editedDate, newRating, editedImageUrl);
     }
 }
 
-function saveToDatabase(ratingId, beerName, location, occasion, comments, date, rating, imageUrl, deleteImage) {
+function saveToDatabase(ratingId, beerName, location, occasion, comments, date, rating, imageUrl) {
     const user = auth.currentUser;
     if (!user) {
         alert("Please log in.");
@@ -491,8 +495,6 @@ function saveToDatabase(ratingId, beerName, location, occasion, comments, date, 
 
     if (imageUrl !== null) {
         ratingData.imageUrl = imageUrl; // Add image if uploaded
-    } else if (deleteImage) {
-        ratingData.imageUrl = null; // Remove image if checkbox checked
     }
 
     // Save the edited rating to Firebase
@@ -504,6 +506,7 @@ function saveToDatabase(ratingId, beerName, location, occasion, comments, date, 
         alert("There was an error updating the rating.");
     });
 }
+
 
 
 
