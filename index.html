@@ -355,31 +355,6 @@ function saveRating(ratingData, userId) {
     });
 }
 
-function uploadImage(file) {
-    return new Promise((resolve, reject) => {
-        // Assuming you're uploading to Imgur as per previous context
-        const formData = new FormData();
-        formData.append("image", file);
-
-        fetch("https://api.imgur.com/3/image", {
-            method: "POST",
-            headers: {
-                "Authorization": "Client-ID 546d3604f50d528", // Replace with your actual Imgur Client ID
-            },
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                resolve(data.data.link); // Resolving with the image URL
-            } else {
-                reject(new Error("Failed to upload image"));
-            }
-        })
-        .catch(error => reject(error));
-    });
-}
-
 
         auth.onAuthStateChanged(user => { if (user) showRatingForm(user); });
 
@@ -425,27 +400,6 @@ function uploadImage(file) {
     imageInput.id = `edit-image-${ratingId}`;
     starsContainer.after(imageInput);
 
-    // Get the image element, if any, and show it along with the "Delete Picture" button
-    const imageElement = document.getElementById(`image-${ratingId}`);
-    if (imageElement && imageElement.src) {
-        const deleteImageButton = document.createElement("button");
-        deleteImageButton.innerText = "Delete Picture";
-        deleteImageButton.style.color = "red";
-        deleteImageButton.style.background = "none";
-        deleteImageButton.style.border = "1px solid red";
-        deleteImageButton.style.cursor = "pointer";
-        deleteImageButton.style.marginTop = "10px";
-
-        // Insert the "Delete Picture" button below the image input
-        imageInput.after(deleteImageButton);
-
-        deleteImageButton.onclick = function () {
-            // Clear the image input and hide the existing image
-            imageInput.value = ''; // Clear the file input
-            imageElement.style.display = "none"; // Hide the image itself
-            deleteImageButton.style.display = "none"; // Hide the "Delete Picture" button
-        };
-    }
 
     // Add Save and Cancel buttons
     const saveButton = document.createElement("button");
@@ -464,10 +418,6 @@ function uploadImage(file) {
     starsContainer.after(saveButton, cancelButton);
 }
 
-
-
-
-
 function cancelEdit(ratingId) {
     const beerSpan = document.getElementById(`beer-${ratingId}`);
     const ratingDiv = beerSpan.closest(".rating-container");
@@ -479,89 +429,57 @@ function cancelEdit(ratingId) {
 
 
 function saveEditedRating(ratingId, newRating) {
-    const beerName = document.getElementById(`edit-beer-${ratingId}`).value;
-    const location = document.getElementById(`edit-location-${ratingId}`).value;
-    const occasion = document.getElementById(`edit-occasion-${ratingId}`).value;
-    const comments = document.getElementById(`edit-comments-${ratingId}`).value;
-    const date = document.getElementById(`edit-date-${ratingId}`).value;
-    const imageInput = document.getElementById(`edit-image-${ratingId}`);
-
-    let imageUrl = null;
-
-    // If a new image is selected, upload it
-    if (imageInput.files.length > 0) {
-        const file = imageInput.files[0];
-        uploadImage(file)
-            .then(url => {
-                imageUrl = url;
-                updateRating(ratingId, beerName, location, occasion, comments, date, newRating, imageUrl);
-            })
-            .catch(error => {
-                console.error("Image upload failed:", error);
-                // Proceed with saving the rating without an image if upload fails
-                updateRating(ratingId, beerName, location, occasion, comments, date, newRating, imageUrl);
-            });
-    } else {
-        // If no new image, just save the rating
-        updateRating(ratingId, beerName, location, occasion, comments, date, newRating, imageUrl);
-    }
-}
-
-// Update the rating in the database after editing
-function updateRating(ratingId, beerName, location, occasion, comments, date, rating, imageUrl) {
-    const ratingRef = database.ref(`ratings/${ratingId}`);
-
-    ratingRef.update({
-        beerName,
-        location,
-        occasion,
-        comments,
-        date,
-        rating,
-        imageUrl // Only updated if an image was uploaded
-    })
-    .then(() => {
-        alert("Rating updated successfully!");
-        window.location.reload(); // Reload page to reflect changes
-    })
-    .catch(error => {
-        console.error("Error updating rating:", error);
-        alert("Failed to update rating. Please try again.");
-    });
-}
-
-function saveToDatabase(ratingId, beerName, location, occasion, comments, date, rating, imageUrl) {
     const user = auth.currentUser;
-    if (!user) {
-        alert("Please log in.");
-        return;
-    }
+    const newBeerName = document.getElementById(`edit-beer-${ratingId}`).value;
+    const newLocation = document.getElementById(`edit-location-${ratingId}`).value;
+    const newOccasion = document.getElementById(`edit-occasion-${ratingId}`).value;
+    const newComments = document.getElementById(`edit-comments-${ratingId}`).value;
+    const newDate = document.getElementById(`edit-date-${ratingId}`).value;
+    const newImageFile = document.getElementById(`edit-image-${ratingId}`).files[0];
 
-    // Prepare the data for Firebase
-    const ratingData = {
-        beerName,
-        location,
-        occasion,
-        comments,
-        date,
-        rating,
+    const updateData = {
+        beerName: newBeerName,
+        location: newLocation,
+        occasion: newOccasion,
+        comments: newComments,
+        date: newDate,
+        rating: newRating
     };
 
-    if (imageUrl !== null) {
-        ratingData.imageUrl = imageUrl; // Add image if uploaded
+    if (newImageFile) {
+        const reader = new FileReader();
+        reader.onload = function () {
+            const base64Image = reader.result.split(',')[1];
+            fetch("https://api.imgur.com/3/image", {
+                method: "POST",
+                headers: {
+                    Authorization: "Client-ID 546d3604f50d528",
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ image: base64Image, type: "base64" }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                updateData.imageUrl = data.data.link;
+                finishUpdate();
+            })
+            .catch(() => {
+                alert("Image upload failed. Changes saved without updating image.");
+                finishUpdate();
+            });
+        };
+        reader.readAsDataURL(newImageFile);
+    } else {
+        finishUpdate();
     }
 
-    // Save the edited rating to Firebase
-    database.ref("users/" + user.uid + "/ratings/" + ratingId).set(ratingData).then(() => {
-        alert("Rating updated successfully.");
-        location.reload(); // Refresh the page to show updated data
-    }).catch(error => {
-        console.error("Error saving rating:", error);
-        alert("There was an error updating the rating.");
-    });
+    function finishUpdate() {
+        database.ref(`users/${user.uid}/ratings/${ratingId}`).update(updateData).then(() => {
+            alert("Rating updated!");
+            loadRatings(user.uid);
+        });
+    }
 }
-
-
 
 
 function sortRatings() {
