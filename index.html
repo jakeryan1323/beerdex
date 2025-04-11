@@ -366,28 +366,22 @@ function saveRating(ratingData, userId) {
     const dateSpan = document.getElementById(`date-${ratingId}`);
     const starsContainer = document.getElementById(`stars-${ratingId}`);
 
-    // Find the rating container div
     const ratingDiv = beerSpan.closest(".rating-container");
-
-    // Save original HTML in case user cancels
     ratingDiv.dataset.originalHtml = ratingDiv.innerHTML;
 
-    // Store current values
     const currentBeer = beerSpan.innerText;
     const currentLocation = locationSpan.innerText;
     const currentOccasion = occasionSpan.innerText;
     const currentComments = commentsSpan.innerText;
     const currentDate = dateSpan.innerText;
 
-    // Make text fields editable
     beerSpan.innerHTML = `<input type="text" id="edit-beer-${ratingId}" value="${currentBeer}">`;
     locationSpan.innerHTML = `<input type="text" id="edit-location-${ratingId}" value="${currentLocation}">`;
     occasionSpan.innerHTML = `<input type="text" id="edit-occasion-${ratingId}" value="${currentOccasion}">`;
     commentsSpan.innerHTML = `<input type="text" id="edit-comments-${ratingId}" value="${currentComments}">`;
     dateSpan.innerHTML = `<input type="date" id="edit-date-${ratingId}" value="${currentDate}">`;
 
-    // Replace stars with an interactive rating selector
-    let newRating = parseFloat(starsContainer.dataset.rating || 0); // Default to 0 if not found
+    let newRating = parseFloat(starsContainer.dataset.rating || 0);
     starsContainer.innerHTML = "";
     createRatingStars(starsContainer, function (rating) {
         newRating = rating;
@@ -400,12 +394,28 @@ function saveRating(ratingData, userId) {
     imageInput.id = `edit-image-${ratingId}`;
     starsContainer.after(imageInput);
 
+    let deleteImage = false;
 
-    // Add Save and Cancel buttons
+    if (window.ratingsData) {
+        const currentRating = window.ratingsData.find(r => r.id === ratingId);
+        if (currentRating?.imageUrl) {
+            const deleteImageButton = document.createElement("button");
+            deleteImageButton.innerText = "Delete Image";
+            deleteImageButton.style.marginTop = "5px";
+            deleteImageButton.onclick = () => {
+                deleteImage = true;
+                imageInput.style.display = "none";
+                deleteImageButton.disabled = true;
+                deleteImageButton.innerText = "Image Deleted";
+            };
+            imageInput.after(deleteImageButton);
+        }
+    }
+
     const saveButton = document.createElement("button");
     saveButton.innerText = "Save";
     saveButton.onclick = function () {
-        saveEditedRating(ratingId, newRating);
+        saveEditedRating(ratingId, newRating, deleteImage);
     };
 
     const cancelButton = document.createElement("button");
@@ -414,9 +424,9 @@ function saveRating(ratingData, userId) {
         cancelEdit(ratingId);
     };
 
-    // Append Save and Cancel buttons to the div
     starsContainer.after(saveButton, cancelButton);
 }
+
 
 function cancelEdit(ratingId) {
     const beerSpan = document.getElementById(`beer-${ratingId}`);
@@ -428,7 +438,7 @@ function cancelEdit(ratingId) {
 }
 
 
-function saveEditedRating(ratingId, newRating) {
+function saveEditedRating(ratingId, newRating, deleteImage) {
     const user = auth.currentUser;
     const newBeerName = document.getElementById(`edit-beer-${ratingId}`).value;
     const newLocation = document.getElementById(`edit-location-${ratingId}`).value;
@@ -445,6 +455,18 @@ function saveEditedRating(ratingId, newRating) {
         date: newDate,
         rating: newRating
     };
+
+    // 🔽 Function is defined *inside* saveEditedRating
+    function finishUpdate() {
+        if (deleteImage) {
+            updateData.imageUrl = null;
+        }
+
+        database.ref(`users/${user.uid}/ratings/${ratingId}`).update(updateData).then(() => {
+            alert("Rating updated!");
+            loadRatings(user.uid);
+        });
+    }
 
     if (newImageFile) {
         const reader = new FileReader();
@@ -472,14 +494,8 @@ function saveEditedRating(ratingId, newRating) {
     } else {
         finishUpdate();
     }
-
-    function finishUpdate() {
-        database.ref(`users/${user.uid}/ratings/${ratingId}`).update(updateData).then(() => {
-            alert("Rating updated!");
-            loadRatings(user.uid);
-        });
-    }
 }
+
 
 
 function sortRatings() {
