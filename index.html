@@ -522,7 +522,7 @@ function updateRating(ratingId, beerName, location, occasion, comments, date, ra
     })
     .then(() => {
         alert("Rating updated successfully!");
-        location.reload(); // Reload page to reflect changes
+        window.location.reload(); // Reload page to reflect changes
     })
     .catch(error => {
         console.error("Error updating rating:", error);
