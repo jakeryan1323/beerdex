@@ -400,6 +400,14 @@ function saveRating(ratingData, userId) {
     imageInput.id = `edit-image-${ratingId}`;
     starsContainer.after(imageInput);
 
+    // Add Delete Image checkbox
+    const deleteImageCheckbox = document.createElement("input");
+    deleteImageCheckbox.type = "checkbox";
+    deleteImageCheckbox.id = `delete-image-${ratingId}`;
+    const deleteImageLabel = document.createElement("label");
+    deleteImageLabel.setAttribute("for", `delete-image-${ratingId}`);
+    deleteImageLabel.innerText = "Delete Image";
+    starsContainer.after(deleteImageCheckbox, deleteImageLabel);
 
     // Add Save and Cancel buttons
     const saveButton = document.createElement("button");
@@ -418,6 +426,7 @@ function saveRating(ratingData, userId) {
     starsContainer.after(saveButton, cancelButton);
 }
 
+
 function cancelEdit(ratingId) {
     const beerSpan = document.getElementById(`beer-${ratingId}`);
     const ratingDiv = beerSpan.closest(".rating-container");
@@ -430,56 +439,72 @@ function cancelEdit(ratingId) {
 
 function saveEditedRating(ratingId, newRating) {
     const user = auth.currentUser;
-    const newBeerName = document.getElementById(`edit-beer-${ratingId}`).value;
-    const newLocation = document.getElementById(`edit-location-${ratingId}`).value;
-    const newOccasion = document.getElementById(`edit-occasion-${ratingId}`).value;
-    const newComments = document.getElementById(`edit-comments-${ratingId}`).value;
-    const newDate = document.getElementById(`edit-date-${ratingId}`).value;
-    const newImageFile = document.getElementById(`edit-image-${ratingId}`).files[0];
-
-    const updateData = {
-        beerName: newBeerName,
-        location: newLocation,
-        occasion: newOccasion,
-        comments: newComments,
-        date: newDate,
-        rating: newRating
-    };
-
-    if (newImageFile) {
-        const reader = new FileReader();
-        reader.onload = function () {
-            const base64Image = reader.result.split(',')[1];
-            fetch("https://api.imgur.com/3/image", {
-                method: "POST",
-                headers: {
-                    Authorization: "Client-ID 546d3604f50d528",
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ image: base64Image, type: "base64" }),
-            })
-            .then(res => res.json())
-            .then(data => {
-                updateData.imageUrl = data.data.link;
-                finishUpdate();
-            })
-            .catch(() => {
-                alert("Image upload failed. Changes saved without updating image.");
-                finishUpdate();
-            });
-        };
-        reader.readAsDataURL(newImageFile);
-    } else {
-        finishUpdate();
+    if (!user) {
+        alert("Please log in to save the rating.");
+        return;
     }
 
-    function finishUpdate() {
-        database.ref(`users/${user.uid}/ratings/${ratingId}`).update(updateData).then(() => {
-            alert("Rating updated!");
-            loadRatings(user.uid);
+    // Get the edited values
+    const editedBeer = document.getElementById(`edit-beer-${ratingId}`).value;
+    const editedLocation = document.getElementById(`edit-location-${ratingId}`).value;
+    const editedOccasion = document.getElementById(`edit-occasion-${ratingId}`).value;
+    const editedComments = document.getElementById(`edit-comments-${ratingId}`).value;
+    const editedDate = document.getElementById(`edit-date-${ratingId}`).value;
+    const deleteImage = document.getElementById(`delete-image-${ratingId}`).checked;
+
+    let editedImageUrl = null;
+
+    // If the user uploads a new image, process it
+    if (document.getElementById(`edit-image-${ratingId}`).files.length > 0) {
+        const file = document.getElementById(`edit-image-${ratingId}`).files[0];
+        // Assuming you upload the image and get the URL from Imgur (or another service)
+        uploadImage(file).then(url => {
+            editedImageUrl = url;
+            saveToDatabase(ratingId, editedBeer, editedLocation, editedOccasion, editedComments, editedDate, newRating, editedImageUrl, deleteImage);
         });
+    } else if (deleteImage) {
+        // If the user selected to delete the image, just remove it
+        editedImageUrl = null;
+        saveToDatabase(ratingId, editedBeer, editedLocation, editedOccasion, editedComments, editedDate, newRating, editedImageUrl, deleteImage);
+    } else {
+        // If no new image is selected, proceed with current image
+        saveToDatabase(ratingId, editedBeer, editedLocation, editedOccasion, editedComments, editedDate, newRating, editedImageUrl, deleteImage);
     }
 }
+
+function saveToDatabase(ratingId, beerName, location, occasion, comments, date, rating, imageUrl, deleteImage) {
+    const user = auth.currentUser;
+    if (!user) {
+        alert("Please log in.");
+        return;
+    }
+
+    // Prepare the data for Firebase
+    const ratingData = {
+        beerName,
+        location,
+        occasion,
+        comments,
+        date,
+        rating,
+    };
+
+    if (imageUrl !== null) {
+        ratingData.imageUrl = imageUrl; // Add image if uploaded
+    } else if (deleteImage) {
+        ratingData.imageUrl = null; // Remove image if checkbox checked
+    }
+
+    // Save the edited rating to Firebase
+    database.ref("users/" + user.uid + "/ratings/" + ratingId).set(ratingData).then(() => {
+        alert("Rating updated successfully.");
+        location.reload(); // Refresh the page to show updated data
+    }).catch(error => {
+        console.error("Error saving rating:", error);
+        alert("There was an error updating the rating.");
+    });
+}
+
 
 
 function sortRatings() {
